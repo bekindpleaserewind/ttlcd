@@ -20,3 +20,7 @@ General source build instructions.
 ## Permissions and USB Devices
 
 See https://github.com/pyusb/pyusb/blob/master/docs/faq.rst#how-to-practically-deal-with-permission-issues-on-linux for further information on configuring udev rules for allowing unprivileged access to USB devices.
+
+## Donations
+
+If you are feeling nice today, I would be extremely greatful if you bought me a coffee on https://buymeacoffee.com/bekindpleaserewind
