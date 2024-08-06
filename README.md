@@ -1,6 +1,8 @@
 # ttlcd
 Linux controller for the Thermaltake LCD Panel Kit (Tower 200 Mini Chassis Model)
 
+![Thermaltake LCD Panel Kit running ttlcd](https://raw.githubusercontent.com/bekindpleaserewind/ttlcd/main/contrib/lcd_display.jpg)
+
 ## Overview
 Implementation (rough at that) of the Thermaltake LCD Panel API.  Currently CPU, RAM and Load Average widgets are built and can be displayed on a custom background.
 
