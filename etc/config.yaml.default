@@ -1,0 +1,22 @@
+idVendor: 0x264a
+idProduct: 0x233d
+
+# General
+background: "contrib/background2.jpg"
+orientation: "top" # top, left, bottom, right
+font_file: "fonts/Hack-Regular.ttf"
+font_size: 12
+font_color: (255, 255, 255)
+
+# CPU
+cpu_utilization_x: 52 
+cpu_utilization_y: 23 
+
+# RAM
+ram_utilization_x: 443
+ram_utilization_y: 22
+
+# Load Average
+loadavg_x: 185
+loadavg_y: 60
+line_spacing: 8 # defaults to 8
