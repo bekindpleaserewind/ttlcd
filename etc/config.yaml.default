@@ -1,3 +1,4 @@
+# Device
 idVendor: 0x264a
 idProduct: 0x233d
 
@@ -7,16 +8,31 @@ orientation: "top" # top, left, bottom, right
 font_file: "fonts/Hack-Regular.ttf"
 font_size: 12
 font_color: (255, 255, 255)
+line_length: 64
+line_space: 8
 
 # CPU
+enable_cpu_utilization: True
 cpu_utilization_x: 52 
 cpu_utilization_y: 23 
+cpu_font_file: "fonts/DejaVuSans.ttf"
+cpu_font_size: 12
+cpu_font_color: (255, 255, 255)
 
 # RAM
+enable_ram_utilization: True
 ram_utilization_x: 443
 ram_utilization_y: 22
+ram_font_file: "fonts/DejaVuSans.ttf"
+ram_font_size: 12
+ram_font_color: (255, 255, 255)
 
 # Load Average
+enable_loadavg: True
 loadavg_x: 185
 loadavg_y: 60
-line_spacing: 8 # defaults to 8
+ram_font_file: "fonts/DejaVuSans.ttf"
+ram_font_size: 12
+ram_font_color: (255, 255, 255)
+loadavg_line_space: 8
+loadavg_line_length: 64

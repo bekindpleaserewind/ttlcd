@@ -14,7 +14,7 @@ import sys
 
 from PIL import Image
 
-import overlays
+import layouts
  
 GLOBAL_INIT_LOCK = 0
 MAX_GLOBAL_INIT = 13
@@ -265,11 +265,12 @@ class Third(threading.Thread):
 		first = 0
 		self.init()
 
-		node = overlays.Node()
-		node.setup(self.config.get('background'), self.config.get('font_file'), self.config.get('font_size'), self.config.get('font_color'))
-		node.set_location_cpu_utilization(self.config.get('cpu_utilization_x'), self.config.get('cpu_utilization_y'))
-		node.set_location_ram_utilization(self.config.get('ram_utilization_x'), self.config.get('ram_utilization_y'))
-		node.set_location_loadavg(self.config.get('loadavg_x'), self.config.get('loadavg_y'), self.config.get('line_spacing', 8))
+		node = layouts.Node(self.config)
+		if node.validate_config():
+			return(1)
+
+		if node.setup():
+			return(2)
 
 		while self.running:
 			blocked = False
@@ -385,7 +386,7 @@ class Fourth(threading.Thread):
 		while not GLOBAL_STAT:
 			time.sleep(0.1)
 
-		if GLOBAL_INIT_LOCK >= 14 and GLOBAL_INIT_LOCK < 15:
+		if GLOBAL_INIT_LOCK >= 13 and GLOBAL_INIT_LOCK < 14:
 			self.control.read(16, 1000)
 
 		logging.info("Shutdown Fourth")
@@ -408,9 +409,12 @@ class Control(threading.Thread):
 		self.running = True
 		self.control = USBControl(self.device)
 
-		self.init()
-
-		logging.info("Shutdown Control")
+		try:
+			self.init()
+		except usb.core.USBTimeoutError as e:
+			logging.error("USBTimeoutError: please reset your device")
+		except usb.core.USBError as e:
+			logging.error("USBError: please reset your device")
 
 	def shutdown(self):
 		self.running = False
@@ -532,6 +536,8 @@ class LcdController:
 		self.third.shutdown()
 		self.fourth.shutdown()
 		self.control.shutdown()
+
+		usb.util.dispose_resources(self.dev)
 
 if __name__ == "__main__":
 	try:
