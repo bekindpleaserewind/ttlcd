@@ -1,5 +1,8 @@
+docutils==0.21.2
+lockfile==0.12.2
 pillow==10.4.0
 psutil==6.0.0
+python-daemon==3.0.1
 pyusb==1.2.1
 PyYAML==6.0.1
 setuptools==71.1.0
