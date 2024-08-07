@@ -1,13 +1,12 @@
 import os
-import ast
-import logging
 import tempfile
 
 import widgets
 
 class Overlay:
-    def __init__(self, config):
+    def __init__(self, config, logger):
         self.config = config
+        self.logger = logger
         self.tmpdir = tempfile.TemporaryDirectory()
         self.image_path = None
 
@@ -39,38 +38,43 @@ class Overlay:
         return(self.image_path)
 
 class Node(Overlay):
-    def __init__(self, config):
+    def __init__(self, config, logger):
         self.cpu_utilization = None
-        Overlay.__init__(self, config)
+        Overlay.__init__(self, config, logger)
 
     def validate_config(self):
         """
         Basic configuration validation
         """
         r = 0
-
+        
         # Validate required global variables exist
         for k in ['idVendor', 'idProduct', 'background', 'orientation', 'font_file', 'font_size', 'font_color', 'line_length', 'line_space']:
             if self.config.get(k) is None:
-                logging.error("Missing configuration argument '%s'", k)
+                self.logger.error("Missing configuration argument '%s'", k)
                 r = 1
 
         # Validate each widget argument when a widget is enabled
         if self.config.get('enable_cpu_utilization') is not None:
             for k in ['cpu_utilization_x', 'cpu_utilization_y']:
                 if self.config.get(k) is None:
-                    logging.error("Missing configuration argument '%s'", k)
+                    self.logger.error("Missing configuration argument '%s'", k)
                     r = 1
         if self.config.get('enable_ram_utilization') is not None:
             for k in ['ram_utilization_x', 'ram_utilization_y']:
                 if self.config.get(k) is None:
-                    logging.error("Missing configuration argument '%s'", k)
+                    self.logger.error("Missing configuration argument '%s'", k)
                     r = 1
         if self.config.get('enable_loadavg') is not None:
             for k in ['loadavg_x', 'loadavg_y', 'loadavg_line_space']:
                 if self.config.get(k) is None:
-                    logging.error("Missing configuration argument '%s'", k)
+                    self.logger.error("Missing configuration argument '%s'", k)
                     r = 1
+
+        # Specific tests
+        if not os.path.exists(self.config.get('background')):
+            self.logger.error("no such background file '%s'", self.config.get('background'))
+            r = 1
 
         return(r)
 
@@ -86,13 +90,13 @@ class Node(Overlay):
         self.set_image_path(os.path.join(self.tmpdir.name, 'screen.jpg'))
 
         if self.config.get('enable_cpu_utilization', False):
-            self.cpu_utilization = widgets.CpuUtilization(self.config, self.tmpdir)
+            self.cpu_utilization = widgets.CpuUtilization(self.config, self.tmpdir, self.logger)
             self.cpu_utilization.setup(self.get_background())
         if self.config.get('enable_ram_utilization', False):
-            self.ram_utilization = widgets.RamUtilization(self.config, self.tmpdir)
+            self.ram_utilization = widgets.RamUtilization(self.config, self.tmpdir, self.logger)
             self.ram_utilization.setup(self.get_background())
         if self.config.get('enable_loadavg', False):
-            self.loadavg = widgets.LoadAverage(self.config, self.tmpdir)
+            self.loadavg = widgets.LoadAverage(self.config, self.tmpdir, self.logger)
             self.loadavg.setup(self.get_background())
 
         # Success

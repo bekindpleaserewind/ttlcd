@@ -7,11 +7,12 @@ from PIL import Image, ImageDraw, ImageFont
 IMAGE_PATH = None
 
 class Widget:
-    def __init__(self, config, tmpdir):
+    def __init__(self, config, tmpdir, logger):
         self.config = config
         self.value = None
         self.node = None
         self.tmpdir = tmpdir
+        self.logger = logger
         self.background_file = None
         self.x = 0
         self.y = 0
@@ -45,7 +46,7 @@ class Widget:
 
     def set_font(self, font_file = None):
         if font_file is None:
-            self.font_file = self.config.get('font_file')
+            self.font_file = self.config.get('font_file', None)
         else:
             self.font_file = font_file
 
@@ -134,11 +135,14 @@ class Widget:
     def draw(self):
         self.tick()
 
-        if self.get_image_path() is None:
+        if self.get_image_path() is None and self.get_background() is not None:
             image = Image.open(self.get_background())
             self.set_image_path(os.path.join(self.tmpdir.name, 'screen.jpg'))
         else:
-            image = Image.open(self.get_image_path())
+            try:
+                image = Image.open(self.get_image_path())
+            except Exception as e:
+                self.logger.error("failed to open image %s", str(e))
 
         draw = ImageDraw.Draw(image)
         f = ImageFont.truetype(self.get_font(), self.get_font_size())
@@ -178,8 +182,8 @@ class Widget:
         pass
 
 class CpuUtilization(Widget):
-    def __init__(self, config, tmpdir):
-        Widget.__init__(self, config, tmpdir)
+    def __init__(self, config, tmpdir, logger):
+        Widget.__init__(self, config, tmpdir, logger)
 
     def setup(self, background):
         self.set_background(background)
@@ -193,8 +197,8 @@ class CpuUtilization(Widget):
         self.value = psutil.cpu_percent()
 
 class RamUtilization(Widget):
-    def __init__(self, config, tmpdir):
-        Widget.__init__(self, config, tmpdir)
+    def __init__(self, config, tmpdir, logger):
+        Widget.__init__(self, config, tmpdir, logger)
 
     def setup(self, background):
         self.set_background(background)
@@ -208,8 +212,8 @@ class RamUtilization(Widget):
         self.value = psutil.virtual_memory().percent
 
 class LoadAverage(Widget):
-    def __init__(self, config, tmpdir):
-        Widget.__init__(self, config, tmpdir)
+    def __init__(self, config, tmpdir, logger):
+        Widget.__init__(self, config, tmpdir, logger)
 
     def setup(self, background):
         self.set_background(background)

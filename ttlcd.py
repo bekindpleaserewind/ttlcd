@@ -1,7 +1,6 @@
 import usb.core
 import usb.util
-import tempfile
-import shutil
+import daemon
 import struct
 import yaml
 import time
@@ -38,8 +37,9 @@ ROTATE_BOTTOM = 180
 ROTATE_RIGHT = 270
 
 class USBControl:
-	def __init__(self, dev, endpoint = None):
+	def __init__(self, dev, logger, endpoint = None):
 		self.device = dev
+		self.logger = logger
 		self.endpoint = endpoint
 		self.lock = threading.Lock()
 	
@@ -53,7 +53,7 @@ class USBControl:
 			self.endpoint.read(buf, timeout)
 			return(buf)
 		except:
-			logging.warning("Failed to get data for endpoint {}".format(self.endpoint))
+			self.logger.warning("Failed to get data for endpoint {}".format(self.endpoint))
 		finally:
 			self.lock.release()
 
@@ -62,7 +62,7 @@ class USBControl:
 			self.lock.acquire()
 			self.endpoint.write(data)
 		except:
-			logging.warning("Failed to send data for endpoint {}".format(self.endpoint))
+			self.logger.warning("Failed to send data for endpoint {}".format(self.endpoint))
 		finally:
 			self.lock.release()
 
@@ -77,7 +77,7 @@ class USBControl:
 			else:
 				assert self.device.ctrl_transfer(bmRquestType, bmRequest, wValue, wIndex, 0) == 0
 		except:
-			logging.warning("Failed to perform control transfer")
+			self.logger.warning("Failed to perform control transfer")
 		finally:
 			self.lock.release()
 
@@ -122,13 +122,14 @@ class USBControl:
 		return(data)
 
 class First(threading.Thread):
-	def __init__(self, dev, endpoint, config):
+	def __init__(self, dev, endpoint, config, logger):
 		self.device = dev
 		self.endpoint = endpoint
 		self.config = config
+		self.logger = logger
 		self.classes = {}
 		self.running = False
-		logging.info("Loaded First Driver")
+		self.logger.info("Loaded First Driver")
 		threading.Thread.__init__(self)
 	
 	def set_class(self, class_index, cls):
@@ -137,7 +138,9 @@ class First(threading.Thread):
 	def run(self):
 		global GLOBAL_INIT_LOCK, MAX_GLOBAL_INIT, GLOBAL_RUNNING
 		self.running = True
-		self.control = USBControl(self.device, self.endpoint)
+		self.control = USBControl(self.device, self.logger, self.endpoint)
+
+		self.logger.info("First Started")
 
 		self.init()
 
@@ -149,7 +152,7 @@ class First(threading.Thread):
 			else:
 				time.sleep(0.1)
 
-		logging.info("Shutdown First")
+		self.logger.info("Shutdown First")
 	
 	def shutdown(self):
 		self.running = False
@@ -183,18 +186,21 @@ class First(threading.Thread):
 		self.control.write(packet)
 
 class Second(threading.Thread):
-	def __init__(self, dev, endpoint, config):
+	def __init__(self, dev, endpoint, config, logger):
 		self.device = dev
 		self.endpoint = endpoint
 		self.config = config
+		self.logger = logger
 		self.running = False
-		logging.info("Loaded Second Driver")
+		self.logger.info("Loaded Second Driver")
 		threading.Thread.__init__(self)
 	
 	def run(self):
 		global GLOBAL_INIT_LOCK, MAX_GLOBAL_INIT, GLOBAL_RUNNING
 		self.running = True
-		self.control = USBControl(self.device, self.endpoint)
+		self.control = USBControl(self.device, self.logger, self.endpoint)
+
+		self.logger.info("Second Started")
 
 		self.init()
 
@@ -205,7 +211,7 @@ class Second(threading.Thread):
 			else:
 				time.sleep(0.1)
 
-		logging.info("Shutdown Second")
+		self.logger.info("Shutdown Second")
 
 	def shutdown(self):
 		self.running = False
@@ -236,15 +242,16 @@ class Second(threading.Thread):
 			time.sleep(0.1)
 
 class Third(threading.Thread):
-	def __init__(self, dev, endpoint, config, first_endpoint):
+	def __init__(self, dev, endpoint, config, first_endpoint, logger):
 		self.device = dev
 		self.endpoint = endpoint
 		self.config = config
 		self.first_endpoint = first_endpoint
+		self.logger = logger
 		self.running = False
 		self.block = False
 		self.orientate_image = 0
-		logging.info("Loaded Third Driver")
+		self.logger.info("Loaded Third Driver")
 		threading.Thread.__init__(self)
 	
 	def _pause(self):
@@ -259,13 +266,15 @@ class Third(threading.Thread):
 	def run(self):
 		global GLOBAL_INIT_LOCK, GLOBAL_STAT
 		self.running = True
-		self.control = USBControl(self.device, self.endpoint)
+		self.control = USBControl(self.device, self.logger, self.endpoint)
 
-		tst = False
 		first = 0
 		self.init()
 
-		node = layouts.Node(self.config)
+		self.logger.info("Third Started")
+
+		node = layouts.Node(self.config, self.logger)
+
 		if node.validate_config():
 			return(1)
 
@@ -349,7 +358,7 @@ class Third(threading.Thread):
 
 		node.cleanup()
 
-		logging.info("Shutdown Third")
+		self.logger.info("Shutdown Third")
 		GLOBAL_STAT = True
 		GLOBAL_INIT_LOCK = GLOBAL_INIT_LOCK + 1
 
@@ -360,18 +369,22 @@ class Third(threading.Thread):
 		pass
 
 class Fourth(threading.Thread):
-	def __init__(self, dev, endpoint, config):
+	def __init__(self, dev, endpoint, config, logger):
 		self.device = dev
 		self.endpoint = endpoint
 		self.config = config
+		self.logger = logger
 		self.running = False
-		logging.info("Loaded Fourth Driver")
+		self.logger.info("Loaded Fourth Driver")
 		threading.Thread.__init__(self)
 	
 	def run(self):
 		global GLOBAL_INIT_LOCK, GLOBAL_STAT, GLOBAL_RUNNING
+
+		self.logger.info("Fourth Started")
+
 		self.running = True
-		self.control = USBControl(self.device, self.endpoint)
+		self.control = USBControl(self.device, self.logger, self.endpoint)
 
 		self.init()
 
@@ -389,7 +402,7 @@ class Fourth(threading.Thread):
 		if GLOBAL_INIT_LOCK >= 13 and GLOBAL_INIT_LOCK < 14:
 			self.control.read(16, 1000)
 
-		logging.info("Shutdown Fourth")
+		self.logger.info("Shutdown Fourth")
 
 	def shutdown(self):
 		self.running = False
@@ -398,23 +411,25 @@ class Fourth(threading.Thread):
 		pass
 
 class Control(threading.Thread):
-	def __init__(self, dev, config):
+	def __init__(self, dev, config, logger):
 		self.device = dev
 		self.config = config
+		self.logger = logger
 		self.running = False
-		logging.info("Loaded Control Driver")
+		print(self.logger)
+		self.logger.info("Loaded Control Driver")
 		threading.Thread.__init__(self)
 	
 	def run(self):
 		self.running = True
-		self.control = USBControl(self.device)
+		self.control = USBControl(self.device, self.logger)
 
 		try:
 			self.init()
 		except usb.core.USBTimeoutError as e:
-			logging.error("USBTimeoutError: please reset your device")
+			self.logger.error("USBTimeoutError: please reset your device")
 		except usb.core.USBError as e:
-			logging.error("USBError: please reset your device")
+			self.logger.error("USBError: please reset your device")
 
 	def shutdown(self):
 		self.running = False
@@ -433,26 +448,14 @@ class Control(threading.Thread):
 			time.sleep(0.1)
 
 class LcdController:
-	def __init__(self):
-		parser = argparse.ArgumentParser(
-			prog = "ttlcd",
-			description = 'Linux controller for the Thermaltake LCD Panel Kit (Tower 200 Mini Chassis Model)',
-			epilog = 'Donations are greatly appreciated and can be made at: https://buymeacoffee.com/bekindpleaserewind'
-		)
-
-		parser.add_argument('-c', '--config', action = 'store', dest = 'config', help = 'Configuration file for ttlcd', required = True)
-		self.args = parser.parse_args()
-	
-		if not self.args.config or not os.path.exists(self.args.config):
-			logging.error("no such configuration file '%s'", self.args.config)
-			sys.exit(1)
-
-		with open(self.args.config, "r") as fd:
-			self.config = yaml.safe_load(fd.read())
-		
+	def __init__(self, config, logger):
+		self.config = config
+		self.logger = logger
 		self.dev = usb.core.find(idVendor = self.config.get('idVendor'), idProduct = self.config.get('idProduct'))
 		if self.dev is None:
 			raise ValueError('Device not found')
+		
+		self.logger.info("Loaded LcdController")
 
 	def setup(self):
 		try:
@@ -463,18 +466,19 @@ class LcdController:
 		if self.configuration is None or self.configuration.bConfigurationValue != DESIRED_CONFIG:
 			self.dev.set_configuration(DESIRED_CONFIG)
 
-
 		if self.dev.is_kernel_driver_active(0):
 			try:
 				self.dev.detach_kernel_driver(0)
 			except usb.core.USBError as e:
-				sys.exit("Could not detatch kernel driver from interface: {0}".format(str(e)))
+				self.logger.error("Could not detatch kernel driver from interface: %s", str(e))
+				sys.exit(1)
 
 		if self.dev.is_kernel_driver_active(1):
 			try:
 				self.dev.detach_kernel_driver(1)
 			except usb.core.USBError as e:
-				sys.exit("Could not detatch kernel driver from interface: {0}".format(str(e)))
+				self.logger.error("Could not detatch kernel driver from interface: %s", str(e))
+				sys.exit(2)
 
 		self.interfaces = []
 		self.interfaces.append(self.configuration[(0, 0)])
@@ -503,11 +507,11 @@ class LcdController:
 	def run(self):
 		global GLOBAL_RUNNING
 
-		self.control = Control(self.dev, self.config)
-		self.first = First(self.dev, self.endpoints[0], self.config)
-		self.second = Second(self.dev, self.endpoints[1], self.config)
-		self.third = Third(self.dev, self.endpoints[2], self.config, self.first)
-		self.fourth = Fourth(self.dev, self.endpoints[3], self.config)
+		self.control = Control(self.dev, self.config, self.logger)
+		self.first = First(self.dev, self.endpoints[0], self.config, self.logger)
+		self.second = Second(self.dev, self.endpoints[1], self.config, self.logger)
+		self.third = Third(self.dev, self.endpoints[2], self.config, self.first, self.logger)
+		self.fourth = Fourth(self.dev, self.endpoints[3], self.config, self.logger)
 
 		self.first.set_class(CLASS_SECOND, self.second)
 		self.first.set_class(CLASS_THIRD, self.third)
@@ -520,6 +524,8 @@ class LcdController:
 		self.second.start()
 		self.third.start()
 		self.fourth.start()
+
+		self.logger.info("ttlcd is running")
 
 		while not GLOBAL_RUNNING:
 			time.sleep(0.1)
@@ -539,16 +545,69 @@ class LcdController:
 
 		usb.util.dispose_resources(self.dev)
 
-if __name__ == "__main__":
-	try:
-		logging.basicConfig(
-			level = logging.INFO,
-			format = '%(asctime)s %(levelname)s %(message)s',
-		)
+def setup_logger(log_file = False):
+	if log_file:
+		logger = logging.getLogger('ttlcd')
+		logger.setLevel(logging.INFO)
 
-		lcd = LcdController()
-		lcd.setup()
-		lcd.run()
-	except KeyboardInterrupt:
-		logging.info("Shutting down...")
-		lcd.shutdown()
+		fh = logging.FileHandler(log_file)
+		fh.setLevel(logging.INFO)
+
+		formatstr = '%(asctime)s %(levelname)s %(message)s'
+		formatter = logging.Formatter(formatstr)
+
+		fh.setFormatter(formatter)
+
+		logger.addHandler(fh)
+		return(logger)
+
+if __name__ == "__main__":
+	parser = argparse.ArgumentParser(
+		prog = "ttlcd",
+		description = 'Linux controller for the Thermaltake LCD Panel Kit (Tower 200 Mini Chassis Model)',
+		epilog = 'Donations are greatly appreciated and can be made at: https://buymeacoffee.com/bekindpleaserewind'
+	)
+
+	parser.add_argument('-c', '--config', action = 'store', dest = 'config', help = 'Configuration file for ttlcd', required = True)
+	parser.add_argument('-l', '--log-file', action = 'store', dest = 'logfile', help = 'Log file for ttlcd', required = False)
+	parser.add_argument('-d', '--daemon', action = 'store_true', dest = 'daemon', help = 'Run as a system daemon', required = False)
+	args = parser.parse_args()
+
+	if not args.config or not os.path.exists(args.config):
+		print("ttlcd: no such configuration file '%s'", args.config)
+		sys.exit(1)
+
+	config = None
+	with open(args.config, "r") as fd:
+		config = yaml.safe_load(fd.read())
+
+	log_file = False
+	if args.logfile:
+		log_file =  args.logfile
+	else:
+		if config.get('log_file', False):
+			log_file = config.get('log_file')
+
+	if not log_file:
+		print("ttlcd: log_file is required")
+		sys.exit(2)
+
+	if config.get('daemon', False) or args.daemon:
+		with daemon.DaemonContext(umask = 0o077, ):
+			logger = setup_logger(log_file)
+			logger.info("test")
+			lcd = LcdController(config, logger)
+			lcd.setup()
+			lcd.run()
+			lcd.shutdown()
+	else:
+		logger = setup_logger(log_file)
+		try:
+			lcd = LcdController(config, logger)
+			lcd.setup()
+			lcd.run()
+		except KeyboardInterrupt:
+			logger.info("Shutting down...")
+			lcd.shutdown()
+		
+	sys.exit(0)
