@@ -92,9 +92,15 @@ class Node(Overlay):
         if self.config.get('enable_cpu_utilization', False):
             self.cpu_utilization = widgets.CpuUtilization(self.config, self.tmpdir, self.logger)
             self.cpu_utilization.setup(self.get_background())
+        if self.config.get('enable_cpu_utilization_bar', False):
+            self.cpu_utilization_bar = widgets.CpuUtilizationBar(self.config, self.tmpdir, self.logger)
+            self.cpu_utilization_bar.setup(self.get_background())
         if self.config.get('enable_ram_utilization', False):
             self.ram_utilization = widgets.RamUtilization(self.config, self.tmpdir, self.logger)
             self.ram_utilization.setup(self.get_background())
+        if self.config.get('enable_ram_utilization_bar', False):
+            self.ram_utilization_bar = widgets.RamUtilizationBar(self.config, self.tmpdir, self.logger)
+            self.ram_utilization_bar.setup(self.get_background())
         if self.config.get('enable_loadavg', False):
             self.loadavg = widgets.LoadAverage(self.config, self.tmpdir, self.logger)
             self.loadavg.setup(self.get_background())
@@ -106,8 +112,12 @@ class Node(Overlay):
         # Clear previous frame
         if self.config.get('enable_cpu_utilization', False):
             self.cpu_utilization.clear()
+        if self.config.get('enable_cpu_utilization_bar', False):
+            self.cpu_utilization_bar.clear()
         if self.config.get('enable_ram_utilization', False):
             self.ram_utilization.clear()
+        if self.config.get('enable"ram_utilization_bar', False):
+            self.ram_utilization_bar.clear()
         if self.config.get('enable_loadavg', False):
             self.loadavg.clear()
         
@@ -116,13 +126,28 @@ class Node(Overlay):
         # further Widgets rendered.
         if self.config.get('enable_cpu_utilization', False):
             self.cpu_utilization.draw()
+        if self.config.get('enable_cpu_utilization_bar', False):
+            self.cpu_utilization_bar.draw()
         if self.config.get('enable_ram_utilization', False):
             self.ram_utilization.draw()
+        if self.config.get('enable_ram_utilization_bar', False):
+            self.ram_utilization_bar.draw()
         if self.config.get('enable_loadavg', False):
             self.loadavg.draw()
 
         return(self.get_image_path())
     
     def cleanup(self):
-        self.cpu_utilization.cleanup()
+        # We only need to cleanup one of the widgets
+        # to ensure the tmpdir has been removed.
+        if self.config.get('enable_cpu_utilization', False):
+            self.cpu_utilization.cleanup()
+        elif self.config.get('enable_cpu_utilization_bar', False):
+            self.cpu_utilization_bar.cleanup()
+        elif self.config.get('enable_ram_utilization', False):
+            self.ram_utilization.cleanup()
+        elif self.config.get('enable_ram_utilization_bar', False):
+            self.ram_utilization_bar.cleanup()
+        elif self.config.get('enable_loadavg', False):
+            self.loadavg.cleanup()
 

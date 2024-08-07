@@ -545,21 +545,24 @@ class LcdController:
 
 		usb.util.dispose_resources(self.dev)
 
-def setup_logger(log_file = False):
-	if log_file:
-		logger = logging.getLogger('ttlcd')
-		logger.setLevel(logging.INFO)
+def setup_logger(log_file = False, daemon = False):
+	logger = logging.getLogger('ttlcd')
+	logger.setLevel(logging.INFO)
 
+	if (daemon and log_file) or log_file:
 		fh = logging.FileHandler(log_file)
-		fh.setLevel(logging.INFO)
+	else:
+		fh = logging.StreamHandler(sys.stdout)
 
-		formatstr = '%(asctime)s %(levelname)s %(message)s'
-		formatter = logging.Formatter(formatstr)
+	fh.setLevel(logging.INFO)
 
-		fh.setFormatter(formatter)
+	formatstr = '%(asctime)s %(levelname)s %(message)s'
+	formatter = logging.Formatter(formatstr)
 
-		logger.addHandler(fh)
-		return(logger)
+	fh.setFormatter(formatter)
+
+	logger.addHandler(fh)
+	return(logger)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(
@@ -588,24 +591,20 @@ if __name__ == "__main__":
 		if config.get('log_file', False):
 			log_file = config.get('log_file')
 
-	if not log_file:
-		print("ttlcd: log_file is required")
-		sys.exit(2)
-
 	if config.get('daemon', False) or args.daemon:
 		with daemon.DaemonContext(umask = 0o077, ):
-			logger = setup_logger(log_file)
-			logger.info("test")
+			logger = setup_logger(log_file, config.get('daemon', False))
 			lcd = LcdController(config, logger)
 			lcd.setup()
 			lcd.run()
 			lcd.shutdown()
 	else:
-		logger = setup_logger(log_file)
+		logger = setup_logger(log_file, config.get('daemon', False))
 		try:
 			lcd = LcdController(config, logger)
 			lcd.setup()
 			lcd.run()
+			pass
 		except KeyboardInterrupt:
 			logger.info("Shutting down...")
 			lcd.shutdown()

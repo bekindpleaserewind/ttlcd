@@ -1,10 +1,21 @@
 import os
 import ast
+import math
+import time
 import psutil
 
 from PIL import Image, ImageDraw, ImageFont
 
 IMAGE_PATH = None
+
+WIDGET_TYPE_TEXT = 10
+WIDGET_TYPE_BAR = 20
+
+ORIENTATION_VERTICAL = 10
+ORIENTATION_HORIZONTAL = 20
+
+CPU_LAST_POLL = 0
+CPU_LAST_VALUE = 0
 
 class Widget:
     def __init__(self, config, tmpdir, logger):
@@ -21,6 +32,14 @@ class Widget:
         self.font_color = (255, 255, 255)
         self.line_length = 0
         self.line_space = 0
+        self.bar_width = 0
+        self.bar_height = 0
+        self.bar_scale = 10
+        self.bar_fill_color = 'yellow'
+        self.bar_outline_color = 'red'
+        self.orientation = ORIENTATION_VERTICAL
+        self.widget_type = 0
+
 
     def tick(self):
         """ Override this function """
@@ -94,7 +113,28 @@ class Widget:
             self.y = y 
         else:
             self.y = 0
+
+    def set_bar_width(self, bar_width = 60):
+        self.bar_width = bar_width
     
+    def set_bar_height(self, bar_height = 20):
+        self.bar_height = bar_height
+    
+    def set_bar_scale(self, bar_scale = 20):
+        self.bar_scale = bar_scale
+
+    def set_bar_fill_color(self, bar_fill_color = 'yellow'):
+        self.bar_fill_color = bar_fill_color
+    
+    def set_bar_outline_color(self, bar_outline_color = 'red'):
+        self.bar_outline_color = bar_outline_color
+    
+    def set_type(self, widget_type):
+        self.widget_type = widget_type
+
+    def set_orientation(self, orientation):
+        self.orientation = orientation
+
     def get_background(self):
         return(self.background_file)
 
@@ -143,31 +183,63 @@ class Widget:
                 image = Image.open(self.get_image_path())
             except Exception as e:
                 self.logger.error("failed to open image %s", str(e))
+                return(False)
 
         draw = ImageDraw.Draw(image)
-        f = ImageFont.truetype(self.get_font(), self.get_font_size())
 
-        # Where to place us on the screen
-        loc = self.get_location()
+        if self.widget_type == WIDGET_TYPE_TEXT:
+            f = ImageFont.truetype(self.get_font(), self.get_font_size())
 
-        if type(self.value) == list or type(self.value) == tuple:
-            for value in self.value:
-                if self.line_length <= 0:
-                    draw.text(loc, str(value), self.get_font_color(), font = f)
-                else:
-                    if len(str(value)) > self.line_length:
-                        draw.text(loc, str(value)[0:self.line_length - 3] + "...", self.get_font_color(), font = f)
-                    else:
+            # Where to place us on the screen
+            loc = self.get_location()
+
+            if type(self.value) == list or type(self.value) == tuple:
+                for value in self.value:
+                    if self.line_length <= 0:
                         draw.text(loc, str(value), self.get_font_color(), font = f)
-                loc = (loc[0], int(loc[1]) + int(self.get_font_size()) + int(self.line_space))
-        else:
-            if self.line_length <= 0:
-                draw.text(loc, str(self.value), self.get_font_color(), font = f)
+                    else:
+                        if len(str(value)) > self.line_length:
+                            draw.text(loc, str(value)[0:self.line_length - 3] + "...", self.get_font_color(), font = f)
+                        else:
+                            draw.text(loc, str(value), self.get_font_color(), font = f)
+                    loc = (loc[0], int(loc[1]) + int(self.get_font_size()) + int(self.line_space))
             else:
-                if len(str(self.value)) > self.line_length:
-                    draw.text(loc, str(self.value)[0:self.line_length - 3] + "...", self.get_font_color(), font = f)
+                if self.line_length <= 0:
+                    draw.text(loc, str(self.value), self.get_font_color(), font = f)
                 else:
-                    draw.text(loc, str(self.value)[0:self.line_length], self.get_font_color(), font = f)
+                    if len(str(self.value)) > self.line_length:
+                        draw.text(loc, str(self.value)[0:self.line_length - 3] + "...", self.get_font_color(), font = f)
+                    else:
+                        draw.text(loc, str(self.value)[0:self.line_length], self.get_font_color(), font = f)
+        elif self.widget_type == WIDGET_TYPE_BAR:
+            # number of bars to display
+            bar_step = 100 / self.bar_scale
+            # index of current bar to display
+            bar_index = 0
+
+
+            start_xy = (self.x, self.y)
+            if self.orientation == ORIENTATION_VERTICAL:
+                stop_xy = (start_xy[0] + self.bar_width, start_xy[1] + self.bar_height)
+            elif self.orientation == ORIENTATION_HORIZONTAL:
+                stop_xy = (start_xy[0] + self.bar_width, start_xy[1] + self.bar_height)
+
+            self.logger.info("Using value:%s bar_index:%s", self.value, math.ceil(self.value / bar_step))
+            
+            if self.value <= 0 or self.value < bar_step:
+                value = 1
+            else:
+                value = math.floor(self.value / bar_step)
+
+            while bar_index < value:
+                draw.rectangle([start_xy, stop_xy], fill = self.bar_fill_color, outline = self.bar_outline_color)
+                if self.orientation == ORIENTATION_VERTICAL:
+                    start_xy = (self.x, self.y - (bar_step * (bar_index+1)))
+                    stop_xy = (self.x + self.bar_width, start_xy[1] + self.bar_height)
+                elif self.orientation == ORIENTATION_HORIZONTAL:
+                    start_xy = (self.x + (bar_step * (bar_index+1)), self.y)
+                    stop_xy = (start_xy[0] + self.bar_width, self.y + self.bar_height)
+                bar_index = bar_index + 1
 
         image.save(self.get_image_path(), "JPEG", progressive = False, quality = 80, optimize = True)
     
@@ -186,6 +258,7 @@ class CpuUtilization(Widget):
         Widget.__init__(self, config, tmpdir, logger)
 
     def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
         self.set_background(background)
         self.set_x(self.config.get('cpu_utilization_x'))
         self.set_y(self.config.get('cpu_utilization_y'))
@@ -194,13 +267,56 @@ class CpuUtilization(Widget):
         self.set_font_color(self.config.get('cpu_font_color'))
 
     def tick(self):
-        self.value = psutil.cpu_percent()
+        global CPU_LAST_POLL, CPU_LAST_VALUE
+
+        now = time.time()
+
+        if now - CPU_LAST_POLL >= 1:
+            self.value = psutil.cpu_percent()
+            CPU_LAST_POLL = now
+            CPU_LAST_VALUE = self.value
+        else:
+            self.value = CPU_LAST_VALUE
+
+class CpuUtilizationBar(Widget):
+    def __init__(self, config, tmpdir, logger):
+        super().__init__(config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_BAR)
+
+        if self.config.get('cpu_utilization_bar_orientation', 'vertical') == 'vertical':
+            self.set_orientation(ORIENTATION_VERTICAL)
+        elif self.config.get('cpu_utilization_bar_orientation', 'horizontal') == 'horizontal':
+            self.set_orientation(ORIENTATION_HORIZONTAL)
+
+        self.set_background(background)
+        self.set_x(self.config.get('cpu_utilization_bar_x'))
+        self.set_y(self.config.get('cpu_utilization_bar_y'))
+        self.set_bar_width(self.config.get('cpu_utilization_bar_width'))
+        self.set_bar_height(self.config.get('cpu_utilization_bar_height'))
+        self.set_bar_scale(self.config.get('cpu_utilization_bar_scale'))
+        self.set_bar_fill_color(self.config.get('cpu_utilization_bar_fill_color', 'yellow'))
+        self.set_bar_outline_color(self.config.get('cpu_utilization_bar_outline_color', 'red'))
+
+    def tick(self):
+        global CPU_LAST_POLL, CPU_LAST_VALUE
+
+        now = time.time()
+
+        if now - CPU_LAST_POLL >= 1:
+            self.value = psutil.cpu_percent()
+            CPU_LAST_POLL = now
+            CPU_LAST_VALUE = self.value
+        else:
+            self.value = CPU_LAST_VALUE
 
 class RamUtilization(Widget):
     def __init__(self, config, tmpdir, logger):
-        Widget.__init__(self, config, tmpdir, logger)
+        super().__init__(config, tmpdir, logger)
 
     def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
         self.set_background(background)
         self.set_x(self.config.get('ram_utilization_x'))
         self.set_y(self.config.get('ram_utilization_y'))
@@ -211,11 +327,36 @@ class RamUtilization(Widget):
     def tick(self):
         self.value = psutil.virtual_memory().percent
 
+class RamUtilizationBar(Widget):
+    def __init__(self, config, tmpdir, logger):
+        super().__init__(config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_BAR)
+
+        if self.config.get('ram_utilization_bar_orientation', 'vertical') == 'vertical':
+            self.set_orientation(ORIENTATION_VERTICAL)
+        elif self.config.get('ram_utilization_bar_orientation', 'horizontal') == 'horizontal':
+            self.set_orientation(ORIENTATION_HORIZONTAL)
+
+        self.set_background(background)
+        self.set_x(self.config.get('ram_utilization_bar_x'))
+        self.set_y(self.config.get('ram_utilization_bar_y'))
+        self.set_bar_width(self.config.get('ram_utilization_bar_width'))
+        self.set_bar_height(self.config.get('ram_utilization_bar_height'))
+        self.set_bar_scale(self.config.get('ram_utilization_bar_scale'))
+        self.set_bar_fill_color(self.config.get('ram_utilization_bar_fill_color', 'yellow'))
+        self.set_bar_outline_color(self.config.get('ram_utilization_bar_outline_color', 'red'))
+
+    def tick(self):
+        self.value = psutil.virtual_memory().percent
+
 class LoadAverage(Widget):
     def __init__(self, config, tmpdir, logger):
         Widget.__init__(self, config, tmpdir, logger)
 
     def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
         self.set_background(background)
         self.set_x(self.config.get('loadavg_x'))
         self.set_y(self.config.get('loadavg_y'))
