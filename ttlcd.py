@@ -1,5 +1,6 @@
 import usb.core
 import usb.util
+import signal
 import daemon
 import struct
 import yaml
@@ -550,8 +551,11 @@ def setup_logger(log_file = False, daemon = False):
 	logger.setLevel(logging.INFO)
 
 	if (daemon and log_file) or log_file:
+		print(daemon, log_file)
+		print("Streaming to log file")
 		fh = logging.FileHandler(log_file)
 	else:
+		print("Streaming to stdout")
 		fh = logging.StreamHandler(sys.stdout)
 
 	fh.setLevel(logging.INFO)
@@ -599,7 +603,7 @@ if __name__ == "__main__":
 			lcd.run()
 			lcd.shutdown()
 	else:
-		logger = setup_logger(log_file, config.get('daemon', False))
+		logger = setup_logger(config.get('log_file', False), config.get('daemon', False))
 		try:
 			lcd = LcdController(config, logger)
 			lcd.setup()

@@ -1,10 +1,10 @@
-# Device
+ Device
 idVendor: 0x264a
 idProduct: 0x233d
 
 # System
 daemon: True
-log_file: "/tmp/ttlcd.log"
+log_file: "/tmp/ttlcd.log" # optional parameter, defaults to stdout if missing
 
 # General
 background: "/path/to/background/background2.jpg"
@@ -16,20 +16,21 @@ line_length: 64
 line_space: 8
 
 # CPU Utilization
-enable_cpu_utilization: True
+enable_cpu_utilization: True 
 cpu_utilization_x: 52 
 cpu_utilization_y: 23 
-cpu_font_file: "/path/to/other/font"
+cpu_font_file: "/path/to/other/font.ttf"
 cpu_font_size: 12
 cpu_font_color: (255, 255, 255)
 
 # CPU Utilization Bar
 enable_cpu_utilization_bar: True
 cpu_utilization_bar_orientation: 'vertical' # valid orientations are horizontal or vertical
-cpu_utilization_bar_x: 20
-cpu_utilization_bar_y:  120
+cpu_utilization_bar_direction: 'up' # valid directions are up, down, left, right
+cpu_utilization_bar_x: 30
+cpu_utilization_bar_y: 120 
 cpu_utilization_bar_width: 40
-cpu_utilization_bar_height: 3
+cpu_utilization_bar_height: 7
 cpu_utilization_bar_scale: 10
 cpu_utilization_bar_fill_color: "yellow"  # can also be #HEXRGB
 cpu_utilization_bar_outline_color: "red"  # can also be #HEXRGB
@@ -43,12 +44,13 @@ ram_font_size: 12
 ram_font_color: (255, 255, 255)
 
 # RAM Utilization Bar
-enable_ram_utilization_bar: True
+enable_ram_utilization_bar: True 
 ram_utilization_bar_orientation: 'vertical' # valid orientations are horizontal or vertical
-ram_utilization_bar_x: 420
+ram_utilization_bar_direction: 'up' # valid directions are up, down, left, right
+ram_utilization_bar_x: 415
 ram_utilization_bar_y:  120
 ram_utilization_bar_width: 40
-ram_utilization_bar_height: 3
+ram_utilization_bar_height: 7
 ram_utilization_bar_scale: 10
 ram_utilization_bar_fill_color: "yellow"  # can also be #HEXRGB
 ram_utilization_bar_outline_color: "red"  # can also be #HEXRGB

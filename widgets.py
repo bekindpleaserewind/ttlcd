@@ -32,6 +32,7 @@ class Widget:
         self.font_color = (255, 255, 255)
         self.line_length = 0
         self.line_space = 0
+        self.bar_direction = None
         self.bar_width = 0
         self.bar_height = 0
         self.bar_scale = 10
@@ -135,6 +136,9 @@ class Widget:
     def set_orientation(self, orientation):
         self.orientation = orientation
 
+    def set_bar_direction(self, direction):
+        self.bar_direction = direction
+
     def get_background(self):
         return(self.background_file)
 
@@ -217,28 +221,82 @@ class Widget:
             # index of current bar to display
             bar_index = 0
 
+            start_xy = False
+            stop_xy = False
 
-            start_xy = (self.x, self.y)
-            if self.orientation == ORIENTATION_VERTICAL:
-                stop_xy = (start_xy[0] + self.bar_width, start_xy[1] + self.bar_height)
-            elif self.orientation == ORIENTATION_HORIZONTAL:
-                stop_xy = (start_xy[0] + self.bar_width, start_xy[1] + self.bar_height)
-
-            self.logger.info("Using value:%s bar_index:%s", self.value, math.ceil(self.value / bar_step))
-            
             if self.value <= 0 or self.value < bar_step:
                 value = 1
             else:
                 value = math.floor(self.value / bar_step)
 
+            if self.orientation == ORIENTATION_VERTICAL:
+                if self.bar_direction == 'up':
+                    start_xy = (self.x, self.y)
+                elif self.bar_direction == 'down':
+                    start_xy = (self.x, self.y)
+                else:
+                    self.logger.warning("invalid direction for orientation")
+                    return(False)
+            elif self.orientation == ORIENTATION_HORIZONTAL:
+                if self.bar_direction == 'right':
+                    start_xy = (self.x, self.y)
+                elif self.bar_direction == 'left':
+                    start_xy = (self.x - self.bar_height, self.y)
+                else:
+                    self.logger.warning("invalid direction for orientation")
+                    return(False)
+            else:
+                self.logger.warning("invalid orientation specified")
+                return(False)
+
+            if self.orientation == ORIENTATION_VERTICAL:
+                if self.bar_direction == 'up':
+                    stop_xy = (start_xy[0] + self.bar_width, start_xy[1] + self.bar_height)
+                elif self.bar_direction == 'down':
+                    stop_xy = (start_xy[0] + self.bar_width, start_xy[1] + self.bar_height)
+                else:
+                    self.logger.warning("invalid direction for orientation")
+                    return(False)
+            elif self.orientation == ORIENTATION_HORIZONTAL:
+                if self.bar_direction == 'right':
+                    stop_xy = (self.x + self.bar_height, self.y + self.bar_width)
+                elif self.bar_direction == 'left':
+                    stop_xy = (self.x, self.y + self.bar_width)
+                else:
+                    self.logger.warning("invalid direction for orientation")
+                    return(False)
+            else:
+                self.logger.warning("invalid orientation specified")
+                return(False)
+
             while bar_index < value:
                 draw.rectangle([start_xy, stop_xy], fill = self.bar_fill_color, outline = self.bar_outline_color)
+
                 if self.orientation == ORIENTATION_VERTICAL:
-                    start_xy = (self.x, self.y - (bar_step * (bar_index+1)))
-                    stop_xy = (self.x + self.bar_width, start_xy[1] + self.bar_height)
+                    if self.bar_direction == 'up':
+                        start_xy = (start_xy[0], start_xy[1] - self.bar_height)
+                        stop_xy = (self.x + self.bar_width, start_xy[1] + self.bar_height)
+                    elif self.bar_direction == 'down':
+                        start_xy = (start_xy[0], start_xy[1] + self.bar_height)
+                        stop_xy = (self.x + self.bar_width, start_xy[1] + self.bar_height)
+                    else:
+                        self.logger.warning("invalid direction for orientation")
+                        return(False)
                 elif self.orientation == ORIENTATION_HORIZONTAL:
-                    start_xy = (self.x + (bar_step * (bar_index+1)), self.y)
-                    stop_xy = (start_xy[0] + self.bar_width, self.y + self.bar_height)
+                    if self.bar_direction == 'right':
+                        start_xy = (start_xy[0] + self.bar_height, self.y)
+                        stop_xy = (stop_xy[0] + self.bar_height, self.y + self.bar_width)
+                    elif self.bar_direction == 'left':
+                        start_xy = (start_xy[0] - self.bar_height, self.y)
+                        stop_xy = (stop_xy[0] - self.bar_height, self.y + self.bar_width)
+                        self.logger.info("start_xy %s\tstop_xy %s", start_xy, stop_xy)
+                    else:
+                        self.logger.warning("invalid direction for orientation")
+                        return(False)
+                else:
+                    self.logger.warning("invalid orientation specified")
+                    return(False)
+
                 bar_index = bar_index + 1
 
         image.save(self.get_image_path(), "JPEG", progressive = False, quality = 80, optimize = True)
@@ -291,6 +349,12 @@ class CpuUtilizationBar(Widget):
             self.set_orientation(ORIENTATION_HORIZONTAL)
 
         self.set_background(background)
+
+        if self.config.get('cpu_utilization_bar_orientation', 'vertical') == 'vertical':
+            self.set_bar_direction(self.config.get('cpu_utilization_bar_direction', 'up'))
+        elif self.config.get('cpu_utilization_bar_orientation', 'horizontal') == 'horizontal':
+            self.set_bar_direction(self.config.get('cpu_utilization_bar_direction', 'right'))
+
         self.set_x(self.config.get('cpu_utilization_bar_x'))
         self.set_y(self.config.get('cpu_utilization_bar_y'))
         self.set_bar_width(self.config.get('cpu_utilization_bar_width'))
@@ -340,6 +404,12 @@ class RamUtilizationBar(Widget):
             self.set_orientation(ORIENTATION_HORIZONTAL)
 
         self.set_background(background)
+
+        if self.config.get('ram_utilization_bar_orientation', 'vertical') == 'vertical':
+            self.set_bar_direction(self.config.get('ram_utilization_bar_direction', 'up'))
+        elif self.config.get('ram_utilization_bar_orientation', 'horizontal') == 'horizontal':
+            self.set_bar_direction(self.config.get('ram_utilization_bar_direction', 'right'))
+        
         self.set_x(self.config.get('ram_utilization_bar_x'))
         self.set_y(self.config.get('ram_utilization_bar_y'))
         self.set_bar_width(self.config.get('ram_utilization_bar_width'))
