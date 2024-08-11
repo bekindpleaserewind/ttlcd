@@ -65,6 +65,7 @@ class Kubernetes(Overlay):
 class Node(Overlay):
     def __init__(self, config, logger):
         self.cpu_utilization = None
+        self.text_widgets = []
         Overlay.__init__(self, config, logger)
 
     def validate_config(self):
@@ -215,6 +216,12 @@ class Node(Overlay):
         if self.config.get('enable_network_throughput_recv_total', False):
             self.network_throughput_recv_total = widgets.NetworkThroughputRecvTotal(self.config, self.tmpdir, self.logger)
             self.network_throughput_recv_total.setup(self.get_background())
+        if self.config.get('text', False):
+            for text_config in self.config.get('text', []):
+                if text_config.get('enabled', False):
+                    text_widget = widgets.Text(text_config, self.tmpdir, self.logger)
+                    text_widget.setup(self.get_background())
+                    self.text_widgets.append(text_widget)
 
         # Success
         return(False)
@@ -245,6 +252,9 @@ class Node(Overlay):
             self.network_throughput_send_total.clear()
         if self.config.get('enable_network_throughput_recv_total', False):
             self.network_throughput_recv_total.clear()
+        if self.config.get('text', False):
+            for text_widget in self.text_widgets:
+                text_widget.clear()
         
         # We retrieve a new temporary image path on first draw
         # It should be utilized in place of get_background in all
@@ -273,6 +283,9 @@ class Node(Overlay):
             self.network_throughput_send_total.draw()
         if self.config.get('enable_network_throughput_receive_total', False):
             self.network_throughput_receive_total.draw()
+        if self.config.get('text', False):
+            for text_widget in self.text_widgets:
+                text_widget.draw()
 
         # Image post processing
         util.ImagePostProcess(self.image_path)
@@ -307,3 +320,7 @@ class Node(Overlay):
             self.network_throughput_send_total.cleanup()
         elif self.config.get('enable_network_throughput_receive_total', False):
             self.network_throughput_receive_total.cleanup()
+        elif self.config.get('text', False):
+            for text_widget in self.text_widgets:
+                text_widget.cleanup()
+                break

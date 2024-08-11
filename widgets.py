@@ -314,6 +314,22 @@ class Widget:
     def setup(self):
         pass
 
+class Text(Widget):
+    def __init__(self, config, tmpdir, logger):
+        super().__init__(config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('x'))
+        self.set_y(self.config.get('y'))
+        self.set_font(self.config.get('font_file'))
+        self.set_font_size(self.config.get('font_size'))
+        self.set_font_color(self.config.get('font_color'))
+
+    def tick(self):
+        self.value = self.config.get('string')
+
 class Date(Widget):
     def __init__(self, config, tmpdir, logger):
         super().__init__(config, tmpdir, logger)

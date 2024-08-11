@@ -1,21 +1,84 @@
- Device
+##################################################################################
+# Start by specifying a General configuration with sane defaults for your theme. #
+#                                                                                #
+# You can define widgets individually (all optional).                            #
+# Each widget will require the x and y coordinates, if it is enabled or disabled #
+# and any optional overrides (i.e. font to use, font size, color).               #
+##################################################################################
+
+##########
+# Device #
+##########
 idVendor: 0x264a
 idProduct: 0x233d
 
-# System
+##########
+# System #
+##########
+#
+# You can either enable daemon mode or run it in the foreground.
+# If running in the foreground and you comment out log_file, all 
+# logs will be written to stdout.
+#
 daemon: True
-log_file: "/tmp/ttlcd.log" # optional parameter, defaults to stdout if missing
+log_file: "/tmp/ttlcd.log"      # optional, defaults to stdout if missing
 
-# General
-background: "/path/to/background/background2.jpg"
-orientation: "top" # top, left, bottom, right
-font_file: "/path/to/default/font.ttf"
-font_size: 12
-font_color: (255, 255, 255)
-line_length: 64
-line_space: 8
+###########
+# General #
+###########
+background: "/path/to/background.jpg"   # required
+orientation: "top"                      # required, top, left, bottom, right
+font_file: "/path/to/default/font.ttf"  # required, can be overriden in most widget configurations
+font_size: 12                           # required
+font_color: (255, 255, 255)             # required (Red, Green, Blue)
+line_length: 64                         # required
+line_space: 8                           # required
 
-# CPU Utilization
+########
+# Text #
+########
+#
+# This widget is a list of strings and their related configuration.
+#
+text:
+  - string: "CPU Usage"                     # required, text to display
+    enabled: False                          # required
+    x: 100                                  # required
+    y: 20                                   # required
+    font_file: "/path/to/other/font.ttf"    # optional
+    font_size: 12                           # optional
+    font_color: (100, 87. 0)                # optional
+  - string: "RAM Usage"     
+    enabled: False
+    x: 100
+    y: 20
+    font_file: "/path/to/other/font.ttf"
+    font_size: 12
+    font_color: (100, 87. 0)
+
+########
+# Date #
+########
+enable_date: True
+date_x: 150
+date_y: 20
+date_font_file: "/path/to/other/font.ttf"
+date_font_size: 12
+date_font_color: (100, 87, 0)
+
+########
+# Time #
+########
+enable_time: True
+time_x: 300
+time_y: 20
+time_font_file: "/path/to/other/font.ttf"
+time_font_size: 12
+time_font_color: (100, 87, 0)
+
+###################
+# CPU Utilization #
+###################
 enable_cpu_utilization: True 
 cpu_utilization_x: 52 
 cpu_utilization_y: 23 
@@ -23,7 +86,9 @@ cpu_font_file: "/path/to/other/font.ttf"
 cpu_font_size: 12
 cpu_font_color: (255, 255, 255)
 
-# CPU Utilization Bar
+#######################
+# CPU Utilization Bar #
+#######################
 enable_cpu_utilization_bar: True
 cpu_utilization_bar_orientation: 'vertical' # valid orientations are horizontal or vertical
 cpu_utilization_bar_direction: 'up' # valid directions are up, down, left, right
@@ -35,7 +100,19 @@ cpu_utilization_bar_scale: 10
 cpu_utilization_bar_fill_color: "yellow"  # can also be #HEXRGB
 cpu_utilization_bar_outline_color: "red"  # can also be #HEXRGB
 
-# RAM Utilization
+#################
+# RAM Available #
+#################
+enable_ram_available: True
+ram_available_x: 443
+ram_available_y: 22
+ram_available_font_file: "/path/to/other/font.ttf"
+ram_available_font_size: 12
+ram_available_font_color: (100, 87, 0)
+
+###################
+# RAM Utilization #
+###################
 enable_ram_utilization: True
 ram_utilization_x: 443
 ram_utilization_y: 22
@@ -43,7 +120,9 @@ ram_font_file: "/path/to/other/font.ttf"
 ram_font_size: 12
 ram_font_color: (255, 255, 255)
 
-# RAM Utilization Bar
+#######################
+# RAM Utilization Bar #
+#######################
 enable_ram_utilization_bar: True 
 ram_utilization_bar_orientation: 'vertical' # valid orientations are horizontal or vertical
 ram_utilization_bar_direction: 'up' # valid directions are up, down, left, right
@@ -55,7 +134,9 @@ ram_utilization_bar_scale: 10
 ram_utilization_bar_fill_color: "yellow"  # can also be #HEXRGB
 ram_utilization_bar_outline_color: "red"  # can also be #HEXRGB
 
-# Load Average
+################
+# Load Average #
+################
 enable_loadavg: True
 loadavg_x: 185
 loadavg_y: 60
@@ -64,3 +145,43 @@ loadavg_font_size: 12
 loadavg_font_color: (255, 255, 255)
 loadavg_line_space: 8
 loadavg_line_length: 64
+
+###########################
+# Network Send Throughput #
+###########################
+enable_network_throughput_send: False
+network_throughput_send_x: 443
+network_throughput_send_y: 22
+network_throughput_send_font_file: "/path/to/other/font.ttf"
+network_throughput_send_font_size: 12
+network_throughput_send_font_color: (255, 255, 255)
+
+##############################
+# Network Receive Throughput #
+##############################
+enable_network_throughput_recv: False
+network_throughput_recv_x: 443
+network_throughput_recv_y: 22
+network_throughput_recv_font_file: "/path/to/other/font.ttf"
+network_throughput_recv_font_size: 12
+network_throughput_recv_font_color: (255, 255, 255)
+
+#################################
+# Network Total Send Throughput #
+#################################
+enable_network_throughput_send_total: False
+network_throughput_send_total_x: 443
+network_throughput_send_total_y: 22
+network_throughput_send_total_font_file: "/path/to/other/font.ttf"
+network_throughput_send_total_font_size: 12
+network_throughput_send_total_font_color: (255, 255, 255)
+
+####################################
+# Network Total Receive Throughput #
+####################################
+enable_network_throughput_recv_total: False
+network_throughput_recv_total_x: 443
+network_throughput_recv_total_y: 22
+network_throughput_recv_total_font_file: "/path/to/other/font.ttf"
+network_throughput_recv_total_font_size: 12
+network_throughput_recv_total_font_color: (255, 255, 255)
