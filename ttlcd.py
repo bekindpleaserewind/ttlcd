@@ -398,12 +398,13 @@ class Trigger(threading.Thread):
 				GLOBAL_RUNNING = True
 			time.sleep(0.1)
 		
-		# Break out of main loop and perform confirmation read to avoid device lockup
+		# Break out of main loop and perform confirmation read to try and avoid device lockup
 		while not GLOBAL_STAT:
 			time.sleep(0.1)
 
-		if GLOBAL_INIT_LOCK >= 13 and GLOBAL_INIT_LOCK < 14:
+		if GLOBAL_INIT_LOCK >= 13 and GLOBAL_INIT_LOCK < 14 and GLOBAL_STAT:
 			self.control.read(16, 1000)
+			GLOBAL_STAT = False
 
 		self.logger.info("Shutdown Trigger")
 
