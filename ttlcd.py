@@ -14,6 +14,7 @@ import sys
 
 from PIL import Image
 
+import util
 import layouts
  
 GLOBAL_INIT_LOCK = 0
@@ -22,20 +23,15 @@ MAX_GLOBAL_INIT = 13
 GLOBAL_STAT = False
 GLOBAL_RUNNING = False
 
-CLASS_FIRST = "first"
-CLASS_SECOND = "second"
-CLASS_THIRD = "third"
-CLASS_FOURTH = "fourth"
+CLASS_WRITE = "write"
+CLASS_READ = "read"
+CLASS_MAIN = "main"
+CLASS_TRIGGER = "trigger"
 
 IMAGE_PACKET_SIZE = 1020
 IMAGE_CMD_SIZE = 4
 
 DESIRED_CONFIG = 1
-
-ROTATE_TOP = 0
-ROTATE_LEFT = 90
-ROTATE_BOTTOM = 180
-ROTATE_RIGHT = 270
 
 class USBControl:
 	def __init__(self, dev, logger, endpoint = None):
@@ -122,7 +118,7 @@ class USBControl:
 
 		return(data)
 
-class First(threading.Thread):
+class Write(threading.Thread):
 	def __init__(self, dev, endpoint, config, logger):
 		self.device = dev
 		self.endpoint = endpoint
@@ -130,7 +126,7 @@ class First(threading.Thread):
 		self.logger = logger
 		self.classes = {}
 		self.running = False
-		self.logger.info("Loaded First Driver")
+		self.logger.info("Loaded Write Driver")
 		threading.Thread.__init__(self)
 	
 	def set_class(self, class_index, cls):
@@ -141,7 +137,7 @@ class First(threading.Thread):
 		self.running = True
 		self.control = USBControl(self.device, self.logger, self.endpoint)
 
-		self.logger.info("First Started")
+		self.logger.info("Write Started")
 
 		self.init()
 
@@ -153,7 +149,7 @@ class First(threading.Thread):
 			else:
 				time.sleep(0.1)
 
-		self.logger.info("Shutdown First")
+		self.logger.info("Shutdown Write")
 	
 	def shutdown(self):
 		self.running = False
@@ -186,14 +182,14 @@ class First(threading.Thread):
 	def write(self, packet):
 		self.control.write(packet)
 
-class Second(threading.Thread):
+class Read(threading.Thread):
 	def __init__(self, dev, endpoint, config, logger):
 		self.device = dev
 		self.endpoint = endpoint
 		self.config = config
 		self.logger = logger
 		self.running = False
-		self.logger.info("Loaded Second Driver")
+		self.logger.info("Loaded Read Driver")
 		threading.Thread.__init__(self)
 	
 	def run(self):
@@ -201,7 +197,7 @@ class Second(threading.Thread):
 		self.running = True
 		self.control = USBControl(self.device, self.logger, self.endpoint)
 
-		self.logger.info("Second Started")
+		self.logger.info("Read Started")
 
 		self.init()
 
@@ -212,7 +208,7 @@ class Second(threading.Thread):
 			else:
 				time.sleep(0.1)
 
-		self.logger.info("Shutdown Second")
+		self.logger.info("Shutdown Read")
 
 	def shutdown(self):
 		self.running = False
@@ -242,17 +238,17 @@ class Second(threading.Thread):
 			
 			time.sleep(0.1)
 
-class Third(threading.Thread):
-	def __init__(self, dev, endpoint, config, first_endpoint, logger):
+class Main(threading.Thread):
+	def __init__(self, dev, endpoint, config, write_endpoint, logger):
 		self.device = dev
 		self.endpoint = endpoint
 		self.config = config
-		self.first_endpoint = first_endpoint
+		self.write_endpoint = write_endpoint
 		self.logger = logger
 		self.running = False
 		self.block = False
 		self.orientate_image = 0
-		self.logger.info("Loaded Third Driver")
+		self.logger.info("Loaded Main Driver")
 		threading.Thread.__init__(self)
 	
 	def _pause(self):
@@ -272,96 +268,102 @@ class Third(threading.Thread):
 		first = 0
 		self.init()
 
-		self.logger.info("Third Started")
+		self.logger.info("Main Started")
 
-		node = layouts.Node(self.config, self.logger)
-
-		if node.validate_config():
-			return(1)
-
-		if node.setup():
-			return(2)
-
-		while self.running:
-			blocked = False
-
-			if GLOBAL_INIT_LOCK >= 13 and GLOBAL_INIT_LOCK < 14 and not GLOBAL_STAT:
-				if first == 0:
-					self.first_endpoint.write(self.control.build(435, 0x12, 0x01, 0x00, 0x80, 0x64))
-					if first >= 1:
-						first = 2
-					else:
-						first = 1
-
-				image_path = node.display()
-				if self.orientate_image > 0:
-					image = Image.open(image_path)
-					rotated_image = image.rotate(self.orientate_image)
-					rotated_image.save(image_path, "JPEG", quality = 80, optimize = True, progressive = False)
-
-				with open(image_path, "rb") as rd:
-					index = 0
-					start = 0
-					pkt_index = 1
-
-					raw_data = rd.read().hex()
-					bbytes = list(map(''.join, zip(*[iter(raw_data)]*2)))
-					bbytes = ['0x' + x for x in bbytes]
-					bbytes = [int(i, 0) for i in bbytes]
-
-					iterations = math.ceil(len(bbytes) / (IMAGE_PACKET_SIZE))
-
-					while index < iterations:
-						packets = []
-						pkt_command = [ 0x08, pkt_index, 0x00, 0x00 ]
-
-						if index == 0:
-							command = [0x08, iterations, 0x00, 0x80]
-							if len(bbytes) > start+IMAGE_PACKET_SIZE:
-								data = command + bbytes[0:start + IMAGE_PACKET_SIZE]
-								packet = self.control.raw_build(0, 0, *data)
-								packets.append(packet)
-							else:
-								data = command + bbytes
-								packet = self.control.raw_build(0, IMAGE_PACKET_SIZE + IMAGE_CMD_SIZE - len(data), *data)
-								packets.append(packet)
-						else:
-							if len(bbytes[start:]) > IMAGE_PACKET_SIZE:
-								data = pkt_command + bbytes[start:start+IMAGE_PACKET_SIZE]
-								packet = self.control.raw_build(0, 0, *data)
-								packets.append(packet)
-							else:
-								data = pkt_command + bbytes[start:]
-								packet = self.control.raw_build(0, IMAGE_PACKET_SIZE + IMAGE_CMD_SIZE - len(data), *data)
-								packets.append(packet)
-
-						for packet in packets:
-							while(self.block):
-								blocked = True
-								time.sleep(0.25)
-
-							if not blocked:
-								self.control.write(packet)
-
-							blocked = False
-
-						if index > 0:
-							pkt_index = pkt_index + 1
-
-						index = index + 1
-						start = start + IMAGE_PACKET_SIZE
-
-					time.sleep(0.1)
-
-				GLOBAL_STAT = True
+		layout = False
+		if self.config.get('use', False):
+			if str(self.config.get('use', '')).upper() == "NODE":
+				layout = layouts.Node(self.config, self.logger)
+			elif str(self.config.get('use', '')).upper() == "KUBERNETES":
+				layout = layouts.Kubernetes(self.config, self.logger)
 			else:
-				time.sleep(0.1)
+				self.logger.critical("no such layout")	
+		else:
+			self.logger.critical("missing use selector")
+		
+		if layout:
+			if not layout.setup():
+				while self.running:
+					blocked = False
 
-		node.cleanup()
+					if GLOBAL_INIT_LOCK >= 13 and GLOBAL_INIT_LOCK < 14 and not GLOBAL_STAT:
+						if first == 0:
+							self.write_endpoint.write(self.control.build(435, 0x12, 0x01, 0x00, 0x80, 0x64))
+							if first >= 1:
+								first = 2
+							else:
+								first = 1
 
-		self.logger.info("Shutdown Third")
-		GLOBAL_STAT = True
-		GLOBAL_INIT_LOCK = GLOBAL_INIT_LOCK + 1
+						image_path = layout.display(self.orientate_image)
+
+						if self.orientate_image > 0:
+							image = Image.open(image_path)
+							rotated_image = image.rotate(self.orientate_image)
+							rotated_image.save(image_path, "JPEG", quality = 80, optimize = True, progressive = False)
+
+						with open(image_path, "rb") as rd:
+							index = 0
+							start = 0
+							pkt_index = 1
+
+							raw_data = rd.read().hex()
+							bbytes = list(map(''.join, zip(*[iter(raw_data)]*2)))
+							bbytes = ['0x' + x for x in bbytes]
+							bbytes = [int(i, 0) for i in bbytes]
+
+							iterations = math.ceil(len(bbytes) / (IMAGE_PACKET_SIZE))
+
+							while index < iterations:
+								packets = []
+								pkt_command = [ 0x08, pkt_index, 0x00, 0x00 ]
+
+								if index == 0:
+									command = [0x08, iterations, 0x00, 0x80]
+									if len(bbytes) > start+IMAGE_PACKET_SIZE:
+										data = command + bbytes[0:start + IMAGE_PACKET_SIZE]
+										packet = self.control.raw_build(0, 0, *data)
+										packets.append(packet)
+									else:
+										data = command + bbytes
+										packet = self.control.raw_build(0, IMAGE_PACKET_SIZE + IMAGE_CMD_SIZE - len(data), *data)
+										packets.append(packet)
+								else:
+									if len(bbytes[start:]) > IMAGE_PACKET_SIZE:
+										data = pkt_command + bbytes[start:start+IMAGE_PACKET_SIZE]
+										packet = self.control.raw_build(0, 0, *data)
+										packets.append(packet)
+									else:
+										data = pkt_command + bbytes[start:]
+										packet = self.control.raw_build(0, IMAGE_PACKET_SIZE + IMAGE_CMD_SIZE - len(data), *data)
+										packets.append(packet)
+
+								for packet in packets:
+									while(self.block):
+										blocked = True
+										time.sleep(0.25)
+
+									if not blocked:
+										self.control.write(packet)
+
+									blocked = False
+
+								if index > 0:
+									pkt_index = pkt_index + 1
+
+								index = index + 1
+								start = start + IMAGE_PACKET_SIZE
+
+							time.sleep(0.1)
+
+						GLOBAL_STAT = True
+					else:
+						time.sleep(0.1)
+
+				layout.cleanup()
+
+				self.logger.info("Shutdown Main")
+				GLOBAL_STAT = True
+				GLOBAL_INIT_LOCK = GLOBAL_INIT_LOCK + 1
 
 	def shutdown(self):
 		self.running = False
@@ -369,20 +371,20 @@ class Third(threading.Thread):
 	def init(self):
 		pass
 
-class Fourth(threading.Thread):
+class Trigger(threading.Thread):
 	def __init__(self, dev, endpoint, config, logger):
 		self.device = dev
 		self.endpoint = endpoint
 		self.config = config
 		self.logger = logger
 		self.running = False
-		self.logger.info("Loaded Fourth Driver")
+		self.logger.info("Loaded Trigger Driver")
 		threading.Thread.__init__(self)
 	
 	def run(self):
 		global GLOBAL_INIT_LOCK, GLOBAL_STAT, GLOBAL_RUNNING
 
-		self.logger.info("Fourth Started")
+		self.logger.info("Trigger Started")
 
 		self.running = True
 		self.control = USBControl(self.device, self.logger, self.endpoint)
@@ -403,7 +405,7 @@ class Fourth(threading.Thread):
 		if GLOBAL_INIT_LOCK >= 13 and GLOBAL_INIT_LOCK < 14:
 			self.control.read(16, 1000)
 
-		self.logger.info("Shutdown Fourth")
+		self.logger.info("Shutdown Trigger")
 
 	def shutdown(self):
 		self.running = False
@@ -497,51 +499,56 @@ class LcdController:
 		orientation = self.config.get('orientation', '').upper()
 
 		if orientation == "BOTTOM":
-			self.orientation = ROTATE_BOTTOM
+			self.orientation = util.ROTATE_BOTTOM
 		elif orientation == "LEFT":
-			self.orientation = ROTATE_LEFT
+			self.orientation = util.ROTATE_LEFT
 		elif orientation == "RIGHT":
-			self.orientation = ROTATE_RIGHT
+			self.orientation = util.ROTATE_RIGHT
 		else:
-			self.orientation = ROTATE_TOP
+			self.orientation = util.ROTATE_TOP
 
 	def run(self):
 		global GLOBAL_RUNNING
 
 		self.control = Control(self.dev, self.config, self.logger)
-		self.first = First(self.dev, self.endpoints[0], self.config, self.logger)
-		self.second = Second(self.dev, self.endpoints[1], self.config, self.logger)
-		self.third = Third(self.dev, self.endpoints[2], self.config, self.first, self.logger)
-		self.fourth = Fourth(self.dev, self.endpoints[3], self.config, self.logger)
+		self.write = Write(self.dev, self.endpoints[0], self.config, self.logger)
+		self.read = Read(self.dev, self.endpoints[1], self.config, self.logger)
+		self.main = Main(self.dev, self.endpoints[2], self.config, self.write, self.logger)
+		self.trigger = Trigger(self.dev, self.endpoints[3], self.config, self.logger)
 
-		self.first.set_class(CLASS_SECOND, self.second)
-		self.first.set_class(CLASS_THIRD, self.third)
-		self.first.set_class(CLASS_FOURTH, self.fourth)
+		self.write.set_class(CLASS_READ, self.read)
+		self.write.set_class(CLASS_MAIN, self.main)
+		self.write.set_class(CLASS_TRIGGER, self.trigger)
 
-		self.third.orientate(self.orientation)
+		self.main.orientate(self.orientation)
 
 		self.control.start()
-		self.first.start()
-		self.second.start()
-		self.third.start()
-		self.fourth.start()
+		self.write.start()
+		self.read.start()
+		self.main.start()
+		self.trigger.start()
 
 		self.logger.info("ttlcd is running")
 
 		while not GLOBAL_RUNNING:
 			time.sleep(0.1)
 
+		# Wait for Main to exit
+		self.main.join()
+
+		# Cleanup
+		self.shutdown()
+
+		# Wait for remaining threads to exit
 		self.control.join()
-		self.first.join()
-		self.second.join()
-		self.third.join()
-		self.fourth.join()
+		self.write.join()
+		self.read.join()
 
 	def shutdown(self):
-		self.first.shutdown()
-		self.second.shutdown()
-		self.third.shutdown()
-		self.fourth.shutdown()
+		self.write.shutdown()
+		self.read.shutdown()
+		self.main.shutdown()
+		self.trigger.shutdown()
 		self.control.shutdown()
 
 		usb.util.dispose_resources(self.dev)

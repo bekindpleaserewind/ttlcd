@@ -2,9 +2,12 @@ import os
 import ast
 import math
 import time
+import datetime
 import psutil
 
 from PIL import Image, ImageDraw, ImageFont
+
+import util
 
 IMAGE_PATH = None
 
@@ -311,6 +314,38 @@ class Widget:
     def setup(self):
         pass
 
+class Date(Widget):
+    def __init__(self, config, tmpdir, logger):
+        super().__init__(config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('date_x'))
+        self.set_y(self.config.get('date_y'))
+        self.set_font(self.config.get('date_font_file'))
+        self.set_font_size(self.config.get('date_font_size'))
+        self.set_font_color(self.config.get('date_font_color'))
+
+    def tick(self):
+        self.value = str(datetime.datetime.now()).split(" ")[0]
+
+class Time(Widget):
+    def __init__(self, config, tmpdir, logger):
+        super().__init__(config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('date_x'))
+        self.set_y(self.config.get('date_y'))
+        self.set_font(self.config.get('date_font_file'))
+        self.set_font_size(self.config.get('date_font_size'))
+        self.set_font_color(self.config.get('date_font_color'))
+
+    def tick(self):
+        self.value = str(datetime.datetime.now()).split(" ")[1].split(".")[0]
+
 class CpuUtilization(Widget):
     def __init__(self, config, tmpdir, logger):
         Widget.__init__(self, config, tmpdir, logger)
@@ -374,6 +409,22 @@ class CpuUtilizationBar(Widget):
             CPU_LAST_VALUE = self.value
         else:
             self.value = CPU_LAST_VALUE
+
+class RamAvailable(Widget):
+    def __init__(self, config, tmpdir, logger):
+        super().__init__(config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('ram_utilization_x'))
+        self.set_y(self.config.get('ram_utilization_y'))
+        self.set_font(self.config.get('ram_font_file'))
+        self.set_font_size(self.config.get('ram_font_size'))
+        self.set_font_color(self.config.get('ram_font_color'))
+
+    def tick(self):
+        self.value = psutil.virtual_memory().available
 
 class RamUtilization(Widget):
     def __init__(self, config, tmpdir, logger):
@@ -439,3 +490,99 @@ class LoadAverage(Widget):
     def tick(self):
         self.value = psutil.getloadavg()
         self.value = (" 1 minute: %.2f" % self.value[0], " 5 minute: %.2f" % self.value[1], "15 minute: %.2f" % self.value[2])
+
+class NetworkThroughputSend(Widget):
+    def __init__(self, config, tmpdir, logger):
+        Widget.__init__(self, config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('network_throughput_send_x'))
+        self.set_y(self.config.get('network_throughput_send_y'))
+        self.set_font(self.config.get('network_throughput_send_font_file'))
+        self.set_font_size(self.config.get('network_throughput_send_font_size'))
+        self.set_font_color(self.config.get('network_throughput_send_font_color'))
+
+    def tick(self):
+        net = util.NetworkStatistics()
+        tp = net.poll(0.25)
+
+        if tp['send']['bps'] < 1024:
+            self.value = "%d B/s" % (tp['send']['kbps'],)
+        elif tp['send']['bps'] >= 1024 and tp['send']['bps'] < 10000:
+            self.value = "%d KB/s" % (tp['send']['kbps'],)
+        else:
+            self.value = "%d MB/s" % (tp['send']['mbps'],)
+        
+class NetworkThroughputRecv(Widget):
+    def __init__(self, config, tmpdir, logger):
+        Widget.__init__(self, config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('network_throughput_recv_x'))
+        self.set_y(self.config.get('network_throughput_recv_y'))
+        self.set_font(self.config.get('network_throughput_recv_font_file'))
+        self.set_font_size(self.config.get('network_throughput_recv_font_size'))
+        self.set_font_color(self.config.get('network_throughput_recv_font_color'))
+
+    def tick(self):
+        net = util.NetworkStatistics()
+        tp = net.throughput(0.25)
+
+        if tp['recv']['bps'] < 1024:
+            self.value = "%d B/s" % (tp['recv']['kbps'],)
+        elif tp['recv']['bps'] >= 1024 and tp['recv']['bps'] < 10000:
+            self.value = "%d KB/s" % (tp['recv']['kbps'],)
+        else:
+            self.value = "%d MB/s" % (tp['recv']['mbps'],)
+        
+class NetworkThroughputRecvTotal(Widget):
+    def __init__(self, config, tmpdir, logger):
+        Widget.__init__(self, config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('network_throughput_recv_total_x'))
+        self.set_y(self.config.get('network_throughput_recv_total_y'))
+        self.set_font(self.config.get('network_throughput_recv_total_font_file'))
+        self.set_font_size(self.config.get('network_throughput_recv_total_font_size'))
+        self.set_font_color(self.config.get('network_throughput_recv_total_font_color'))
+
+    def tick(self):
+        net = util.NetworkStatistics()
+        tp = net.total()
+
+        if tp['recv']['bps'] < 1024:
+            self.value = "%d B/s" % (tp['recv']['kbps'],)
+        elif tp['recv']['bps'] >= 1024 and tp['recv']['bps'] < 10000:
+            self.value = "%d KB/s" % (tp['recv']['kbps'],)
+        else:
+            self.value = "%d MB/s" % (tp['recv']['mbps'],)
+
+class NetworkThroughputSendTotal(Widget):
+    def __init__(self, config, tmpdir, logger):
+        Widget.__init__(self, config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('network_throughput_send_total_x'))
+        self.set_y(self.config.get('network_throughput_send_total_y'))
+        self.set_font(self.config.get('network_throughput_send_total_font_file'))
+        self.set_font_size(self.config.get('network_throughput_send_total_font_size'))
+        self.set_font_color(self.config.get('network_throughput_send_total_font_color'))
+
+    def tick(self):
+        net = util.NetworkStatistics()
+        tp = net.total()
+
+        if tp['send']['bps'] < 1024:
+            self.value = "%d B/s" % (tp['send']['kbps'],)
+        elif tp['send']['bps'] >= 1024 and tp['send']['bps'] < 10000:
+            self.value = "%d KB/s" % (tp['send']['kbps'],)
+        else:
+            self.value = "%d MB/s" % (tp['send']['mbps'],)
