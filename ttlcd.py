@@ -420,7 +420,6 @@ class Control(threading.Thread):
 		self.config = config
 		self.logger = logger
 		self.running = False
-		print(self.logger)
 		self.logger.info("Loaded Control Driver")
 		threading.Thread.__init__(self)
 	
@@ -616,7 +615,7 @@ if __name__ == "__main__":
 			lcd = LcdController(config, logger)
 			lcd.setup()
 			lcd.run()
-			pass
+			lcd.shutdown()
 		except KeyboardInterrupt:
 			logger.info("Shutting down...")
 			lcd.shutdown()
