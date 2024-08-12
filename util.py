@@ -1,4 +1,5 @@
 import time
+import threading
 import psutil
 
 from PIL import Image
@@ -7,6 +8,9 @@ ROTATE_TOP = 0
 ROTATE_LEFT = 90
 ROTATE_BOTTOM = 180
 ROTATE_RIGHT = 270
+
+NETWORK_THROUGHPUT = 0
+NETWORK_TOTAL = 1
 
 # Do not adjust image defaults unless you know what you are doing.
 # You run the risk of bricking your device.
@@ -33,10 +37,37 @@ class ImagePostProcess:
 
         image.save(self.image_path, "JPEG", quality = quality, optimize = optimize, dpi = IMAGE_DEFAULT_DPI, progressive = False)
 
-class NetworkStatistics:
-    def throughput(self, interval = 1):
+class NetworkStatistics(threading.Thread):
+    def __init__(self, cmd, interval = 1):
+        self.cmd = cmd
+        self.interval = interval
+        self.last_throughput = False
+        self.last_total = False
+        self.running = False
+        threading.Thread.__init__(self)
+
+    def poll_throughput(self):
+        return(self.last_throughput)
+
+    def poll_total(self):
+        return(self.last_total)
+
+    def run(self):
+        self.running = True
+
+        while self.running:
+            if self.cmd == NETWORK_THROUGHPUT:
+                self.last_throughput = self.throughput()
+            elif self.cmd == NETWORK_TOTAL:
+                self.last_total = self.total()
+                time.sleep(0.1)
+
+    def shutdown(self):
+        self.running = False
+
+    def throughput(self):
         before = psutil.net_io_counters()
-        time.sleep(interval)
+        time.sleep(self.interval)
         after = psutil.net_io_counters()
 
         recv_bps = round(after.bytes_recv - before.bytes_recv, 2)
@@ -63,13 +94,13 @@ class NetworkStatistics:
     def total(self):
         data = psutil.net_io_counters()
 
-        recv_bps = round(data.bytes_recv, 2)
-        recv_kbps = round(recv_bps / 1024, 2)
-        recv_mbps = round(recv_bps / 1024 / 1024, 2)
+        recv_bps = data.bytes_recv
+        recv_kbps = recv_bps / 1024
+        recv_mbps = recv_bps / 1024 / 1024
 
-        sent_bps = round(data.bytes_sent, 2)
-        sent_kbps = round(sent_bps / 1024, 2)
-        sent_mbps = round(sent_bps / 1024 / 1024, 2)
+        sent_bps = data.bytes_sent
+        sent_kbps = sent_bps / 1024
+        sent_mbps = sent_bps / 1024 / 1024
 
         return({
             'recv': {

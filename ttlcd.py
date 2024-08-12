@@ -353,13 +353,12 @@ class Main(threading.Thread):
 								index = index + 1
 								start = start + IMAGE_PACKET_SIZE
 
-							time.sleep(0.1)
-
 						GLOBAL_STAT = True
 					else:
 						time.sleep(0.1)
 
 				layout.cleanup()
+				layout.shutdown()
 
 				self.logger.info("Shutdown Main")
 				GLOBAL_STAT = True

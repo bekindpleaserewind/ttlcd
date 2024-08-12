@@ -137,7 +137,12 @@ class Node(Overlay):
                     self.logger.error("Missing configuration argument '%s'", k)
                     r = True
         if self.config.get('enable_loadavg', False):
-            for k in ['loadavg_x', 'loadavg_y', 'loadavg_line_space']:
+            for k in ['loadavg_x', 'loadavg_y']:
+                if self.config.get(k) is None:
+                    self.logger.error("Missing configuration argument '%s'", k)
+                    r = True
+        if self.config.get('enable_iowait', False):
+            for k in ['iowait_x', 'iowait_y']:
                 if self.config.get(k) is None:
                     self.logger.error("Missing configuration argument '%s'", k)
                     r = True
@@ -158,6 +163,16 @@ class Node(Overlay):
                     r = True
         if self.config.get('enable_network_throughput_recv_total', False):
             for k in ['network_throughput_recv_total_x', 'network_throughput_recv_total_y']:
+                if self.config.get(k) is None:
+                    self.logger.error("Missing configuration argument '%s'", k)
+                    r = True
+        if self.config.get('enable_cpufreq', False):
+            for k in ['cpufreq_x', 'cpufreq_y']:
+                if self.config.get(k) is None:
+                    self.logger.error("Missing configuration argument '%s'", k)
+                    r = True
+        if self.config.get('enable_uptime', False):
+            for k in ['uptime_x', 'uptime_y']:
                 if self.config.get(k) is None:
                     self.logger.error("Missing configuration argument '%s'", k)
                     r = True
@@ -204,6 +219,9 @@ class Node(Overlay):
         if self.config.get('enable_loadavg', False):
             self.loadavg = widgets.LoadAverage(self.config, self.tmpdir, self.logger)
             self.loadavg.setup(self.get_background())
+        if self.config.get('enable_iowait', False):
+            self.iowait = widgets.IOWait(self.config, self.tmpdir, self.logger)
+            self.iowait.setup(self.get_background())
         if self.config.get('enable_network_throughput_send', False):
             self.network_throughput_send = widgets.NetworkThroughputSend(self.config, self.tmpdir, self.logger)
             self.network_throughput_send.setup(self.get_background())
@@ -222,6 +240,12 @@ class Node(Overlay):
                     text_widget = widgets.Text(text_config, self.tmpdir, self.logger)
                     text_widget.setup(self.get_background())
                     self.text_widgets.append(text_widget)
+        if self.config.get('enable_cpufreq', False):
+            self.cpufreq = widgets.CpuFreq(self.config, self.tmpdir, self.logger)
+            self.cpufreq.setup(self.get_background())
+        if self.config.get('enable_uptime', False):
+            self.uptime = widgets.Uptime(self.config, self.tmpdir, self.logger)
+            self.uptime.setup(self.get_background())
 
         # Success
         return(False)
@@ -244,6 +268,8 @@ class Node(Overlay):
             self.ram_utilization_bar.clear()
         if self.config.get('enable_loadavg', False):
             self.loadavg.clear()
+        if self.config.get('enable_iowait', False):
+            self.iowait.clear()
         if self.config.get('enable_network_throughput_send', False):
             self.network_throughput_send.clear()
         if self.config.get('enable_network_throughput_recv', False):
@@ -255,7 +281,11 @@ class Node(Overlay):
         if self.config.get('text', False):
             for text_widget in self.text_widgets:
                 text_widget.clear()
-        
+        if self.config.get('enable_cpufreq', False):
+            self.cpufreq.clear()
+        if self.config.get('enable_uptime', False):
+            self.uptime.clear()
+ 
         # We retrieve a new temporary image path on first draw
         # It should be utilized in place of get_background in all
         # further Widgets rendered.
@@ -275,21 +305,27 @@ class Node(Overlay):
             self.ram_utilization_bar.draw()
         if self.config.get('enable_loadavg', False):
             self.loadavg.draw()
+        if self.config.get('enable_iowait', False):
+            self.iowait.draw()
         if self.config.get('enable_network_throughput_send', False):
             self.network_throughput_send.draw()
-        if self.config.get('enable_network_throughput_receive', False):
-            self.network_throughput_receive.draw()
+        if self.config.get('enable_network_throughput_recv', False):
+            self.network_throughput_recv.draw()
         if self.config.get('enable_network_throughput_send_total', False):
             self.network_throughput_send_total.draw()
-        if self.config.get('enable_network_throughput_receive_total', False):
-            self.network_throughput_receive_total.draw()
+        if self.config.get('enable_network_throughput_recv_total', False):
+            self.network_throughput_recv_total.draw()
         if self.config.get('text', False):
             for text_widget in self.text_widgets:
                 text_widget.draw()
+        if self.config.get('enable_cpufreq', False):
+            self.cpufreq.draw()
+        if self.config.get('enable_uptime', False):
+            self.uptime.draw()
 
-        # Image post processing
-        util.ImagePostProcess(self.image_path)
-        util.process()
+        # Image post processing keeps us safe
+        pp = util.ImagePostProcess(self.image_path)
+        pp.process()
 
         return(self.image_path)
     
@@ -312,15 +348,56 @@ class Node(Overlay):
             self.ram_utilization_bar.cleanup()
         elif self.config.get('enable_loadavg', False):
             self.loadavg.cleanup()
+        elif self.config.get('enable_iowait', False):
+            self.iowait.cleanup()
         elif self.config.get('enable_network_throughput_send', False):
             self.network_throughput_send.cleanup()
-        elif self.config.get('enable_network_throughput_receive', False):
-            self.network_throughput_receive.cleanup()
+        elif self.config.get('enable_network_throughput_recv', False):
+            self.network_throughput_recv.cleanup()
         elif self.config.get('enable_network_throughput_send_total', False):
             self.network_throughput_send_total.cleanup()
-        elif self.config.get('enable_network_throughput_receive_total', False):
-            self.network_throughput_receive_total.cleanup()
+        elif self.config.get('enable_network_throughput_recv_total', False):
+            self.network_throughput_recv_total.cleanup()
         elif self.config.get('text', False):
             for text_widget in self.text_widgets:
                 text_widget.cleanup()
                 break
+        elif self.config.get('enable_cpufreq', False):
+            self.cpufreq.cleanup()
+        elif self.config.get('enable_uptime', False):
+            self.uptime.cleanup()
+
+    def shutdown(self):
+        if self.config.get('enable_date', False):
+            self.date.shutdown()
+        if self.config.get('enable_time', False):
+            self.time.shutdown()
+        if self.config.get('enable_cpu_utilization', False):
+            self.cpu_utilization.shutdown()
+        if self.config.get('enable_cpu_utilization_bar', False):
+            self.cpu_utilization_bar.shutdown()
+        if self.config.get('enable_ram_available', False):
+            self.ram_available.shutdown()
+        if self.config.get('enable_ram_utilization', False):
+            self.ram_utilization.shutdown()
+        if self.config.get('enable_ram_utilization_bar', False):
+            self.ram_utilization_bar.shutdown()
+        if self.config.get('enable_loadavg', False):
+            self.loadavg.shutdown()
+        if self.config.get('enable_iowait', False):
+            self.iowait.shutdown()
+        if self.config.get('enable_network_throughput_send', False):
+            self.network_throughput_send.shutdown()
+        if self.config.get('enable_network_throughput_recv', False):
+            self.network_throughput_recv.shutdown()
+        if self.config.get('enable_network_throughput_send_total', False):
+            self.network_throughput_send_total.shutdown()
+        if self.config.get('enable_network_throughput_recv_total', False):
+            self.network_throughput_recv_total.shutdown()
+        if self.config.get('text', False):
+            for text_widget in self.text_widgets:
+                text_widget.shutdown()
+        if self.config.get('enable_cpufreq', False):
+            self.cpufreq.shutdown()
+        if self.config.get('enable_uptime', False):
+            self.uptime.shutdown()
