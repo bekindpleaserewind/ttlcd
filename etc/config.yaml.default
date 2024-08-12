@@ -1,30 +1,137 @@
- Device
+##################################################################################
+# Start by specifying a General configuration with sane defaults for your theme. #
+#                                                                                #
+# You can define widgets individually (all optional).                            #
+# Each widget will require the x and y coordinates, if it is enabled or disabled #
+# and any optional overrides (i.e. font to use, font size, color).               #
+##################################################################################
+
+# Layout to utilize
+use: Node
+
+# Device
 idVendor: 0x264a
 idProduct: 0x233d
 
 # System
-daemon: True
-log_file: "/tmp/ttlcd.log" # optional parameter, defaults to stdout if missing
+daemon: False
+#log_file: "/tmp/ttlcd.log" # optional parameter, defaults to stdout if missing
 
 # General
-background: "/path/to/background/background2.jpg"
+background: "/path/to/background.jpg"
 orientation: "top" # top, left, bottom, right
 font_file: "/path/to/default/font.ttf"
-font_size: 12
-font_color: (255, 255, 255)
+font_size: 10
+font_color: '#ffffff'
 line_length: 64
 line_space: 8
 
+# Generic Text Strings
+text:
+  - string: "NETWORK OUT"
+    enabled: True
+    x: 302
+    y: 47
+    font_file: "/path/to/other/font.ttf"
+    font_size: 8 
+    font_color: "#000000"
+  - string: "NETWORK IN"
+    enabled: True
+    x: 109
+    y: 47
+    font_file: "/path/to/other/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "CPU"
+    enabled: True
+    x: 228
+    y: 64
+    font_file: "/path/to/other/font.ttf"
+    font_size: 10
+    font_color: "#ffffff"
+  - string: "RAM"
+    enabled: True
+    x: 20
+    y: 26
+    font_file: "/path/to/other/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "USED"
+    enabled: True
+    x: 18
+    y: 34
+    font_file: "/path/to/other/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "RAM"
+    enabled: True
+    x: 20
+    y: 86
+    font_file: "/path/to/other/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "FREE"
+    enabled: True
+    x: 18
+    y: 94
+    font_file: "/path/to/other/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "LOAD"
+    enabled: True
+    x: 437
+    y: 90
+    font_file: "/path/to/other/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "IOWAIT"
+    enabled: True
+    x: 434
+    y: 30
+    font_file: "/path/to/other/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "FREQ"
+    enabled: True
+    x: 158
+    y: 89
+    font_file: "/path/to/other/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "TIME"
+    enabled: True
+    x: 300
+    y: 89
+    font_file: "/path/to/other/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+
+# Date
+enable_date: True
+date_x: 117
+date_y: 14
+date_font_file: "/path/to/other/font.ttf"
+date_font_size: 10
+date_font_color: "#ffffff"
+
+# Time
+enable_time: True
+time_x: 308
+time_y: 14
+time_font_file: "/path/to/other/font.ttf"
+time_font_size: 10
+time_font_color: "#ffffff"
+
 # CPU Utilization
-enable_cpu_utilization: True 
-cpu_utilization_x: 52 
-cpu_utilization_y: 23 
-cpu_font_file: "/path/to/other/font.ttf"
-cpu_font_size: 12
-cpu_font_color: (255, 255, 255)
+enable_cpu_utilization: True
+cpu_utilization_x: 224
+cpu_utilization_y: 50
+cpu_utilization_font_file: "/path/to/other/font.ttf"
+cpu_utilization_font_size: 10
+cpu_utilization_font_color: '#ffffff'
 
 # CPU Utilization Bar
-enable_cpu_utilization_bar: True
+enable_cpu_utilization_bar: False
 cpu_utilization_bar_orientation: 'vertical' # valid orientations are horizontal or vertical
 cpu_utilization_bar_direction: 'up' # valid directions are up, down, left, right
 cpu_utilization_bar_x: 30
@@ -35,16 +142,24 @@ cpu_utilization_bar_scale: 10
 cpu_utilization_bar_fill_color: "yellow"  # can also be #HEXRGB
 cpu_utilization_bar_outline_color: "red"  # can also be #HEXRGB
 
+# RAM Available
+enable_ram_available: True
+ram_available_x: 56
+ram_available_y: 29
+ram_available_font_file: "/path/to/other/font.ttf"
+ram_available_font_size: 8
+ram_available_font_color: '#ffffff'
+
 # RAM Utilization
 enable_ram_utilization: True
-ram_utilization_x: 443
-ram_utilization_y: 22
-ram_font_file: "/path/to/other/font.ttf"
-ram_font_size: 12
-ram_font_color: (255, 255, 255)
+ram_utilization_x: 56
+ram_utilization_y: 88
+ram_utilization_font_file: "/path/to/other/font.ttf"
+ram_utilization_font_size: 8
+ram_utilization_font_color: '#ffffff'
 
 # RAM Utilization Bar
-enable_ram_utilization_bar: True 
+enable_ram_utilization_bar: False
 ram_utilization_bar_orientation: 'vertical' # valid orientations are horizontal or vertical
 ram_utilization_bar_direction: 'up' # valid directions are up, down, left, right
 ram_utilization_bar_x: 415
@@ -57,10 +172,64 @@ ram_utilization_bar_outline_color: "red"  # can also be #HEXRGB
 
 # Load Average
 enable_loadavg: True
-loadavg_x: 185
-loadavg_y: 60
+loadavg_x: 396
+loadavg_y: 90
 loadavg_font_file: "/path/to/other/font.ttf"
-loadavg_font_size: 12
-loadavg_font_color: (255, 255, 255)
-loadavg_line_space: 8
-loadavg_line_length: 64
+loadavg_font_size: 8
+loadavg_font_color: '#ffffff'
+
+# IO Wait
+enable_iowait: True
+iowait_x: 398
+iowait_y: 29
+iowait_font_file: "/path/to/other/font.ttf"
+iowait_font_size: 8
+iowait_font_color: '#ffffff'
+
+# Network Send Throughput
+enable_network_throughput_send: True
+network_throughput_send_x: 301
+network_throughput_send_y: 37
+network_throughput_send_font_file: "/path/to/other/font.ttf"
+network_throughput_send_font_size: 8
+network_throughput_send_font_color: "#ffffff"
+
+# Network Receive Throughput
+enable_network_throughput_recv: True
+network_throughput_recv_x: 114
+network_throughput_recv_y: 37
+network_throughput_recv_font_file: "/path/to/other/font.ttf"
+network_throughput_recv_font_size: 8 
+network_throughput_recv_font_color: "#ffffff"
+
+# Network Total Send Throughput
+enable_network_throughput_send_total: False
+network_throughput_send_total_x: 310
+network_throughput_send_total_y: 36
+network_throughput_send_total_font_file: "/path/to/other/font.ttf"
+network_throughput_send_total_font_size: 10
+network_throughput_send_total_font_color: '#ffffff'
+
+# Network Total Receive Throughput
+enable_network_throughput_recv_total: False
+network_throughput_recv_total_x: 114
+network_throughput_recv_total_y: 36
+network_throughput_recv_total_font_file: "/path/to/other/font.ttf"
+network_throughput_recv_total_font_size: 10
+network_throughput_recv_total_font_color: '#ffffff'
+
+# CPU Frequency
+enable_cpufreq: True
+cpufreq_x: 120
+cpufreq_y: 79
+cpufreq_font_file: "/path/to/other/font.ttf"
+cpufreq_font_size: 8
+cpufreq_font_color: '#ffffff'
+
+# Uptime
+enable_uptime: True
+uptime_x: 306
+uptime_y: 79
+uptime_font_file: "/path/to/other/font.ttf"
+uptime_font_size: 8
+uptime_font_color: '#ffffff'

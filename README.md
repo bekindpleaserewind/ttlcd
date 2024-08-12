@@ -12,7 +12,7 @@ Background images are streamed as fast as they can be processed (a few frames pe
 ### Source
 General source build instructions.
 
-1. Install the pip modules by running ```pip install -r requirements.txt```. I recommend doing this is a python virtual environment dedicated to ttlcd.
+1. Install the pip modules by running ```pip install -r requirements.txt```. I recommend doing this in a python virtual environment dedicated to ttlcd.
 2. If you wish to run as a user other than root, you'll need to provide access to the usb device via udev.  See the section "Permissions and USB Devices".
 3. Create a config.yaml (based off etc/config.yaml.default) which suits your background image.
 3. Execute ```python ttlcd.py -c <config>```.
