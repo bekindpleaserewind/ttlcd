@@ -353,13 +353,12 @@ class Main(threading.Thread):
 								index = index + 1
 								start = start + IMAGE_PACKET_SIZE
 
-							time.sleep(0.1)
-
 						GLOBAL_STAT = True
 					else:
 						time.sleep(0.1)
 
 				layout.cleanup()
+				layout.shutdown()
 
 				self.logger.info("Shutdown Main")
 				GLOBAL_STAT = True
@@ -398,12 +397,13 @@ class Trigger(threading.Thread):
 				GLOBAL_RUNNING = True
 			time.sleep(0.1)
 		
-		# Break out of main loop and perform confirmation read to avoid device lockup
+		# Break out of main loop and perform confirmation read to try and avoid device lockup
 		while not GLOBAL_STAT:
 			time.sleep(0.1)
 
-		if GLOBAL_INIT_LOCK >= 13 and GLOBAL_INIT_LOCK < 14:
+		if GLOBAL_INIT_LOCK >= 13 and GLOBAL_INIT_LOCK < 14 and GLOBAL_STAT:
 			self.control.read(16, 1000)
+			GLOBAL_STAT = False
 
 		self.logger.info("Shutdown Trigger")
 
@@ -419,7 +419,6 @@ class Control(threading.Thread):
 		self.config = config
 		self.logger = logger
 		self.running = False
-		print(self.logger)
 		self.logger.info("Loaded Control Driver")
 		threading.Thread.__init__(self)
 	
@@ -615,7 +614,7 @@ if __name__ == "__main__":
 			lcd = LcdController(config, logger)
 			lcd.setup()
 			lcd.run()
-			pass
+			lcd.shutdown()
 		except KeyboardInterrupt:
 			logger.info("Shutting down...")
 			lcd.shutdown()
