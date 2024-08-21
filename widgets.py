@@ -776,4 +776,40 @@ class PrometheusNetworkThroughputRecv(Widget):
             self.value = "0 B/s"
         
         self.logger.info(self.value)
+
+class PrometheusNetworkThroughputSend(Widget):
+    def __init__(self, config, tmpdir, logger):
+        self.net_send = False
+        Widget.__init__(self, config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('prometheus_network_throughput_send_x'))
+        self.set_y(self.config.get('prometheus_network_throughput_send_y'))
+        self.set_font(self.config.get('prometheus_network_throughput_send_font_file'))
+        self.set_font_size(self.config.get('prometheus_network_throughput_send_font_size'))
+        self.set_font_color(self.config.get('prometheus_network_throughput_send_font_color'))
+        self.set_prometheus_url(self.config.get('prometheus_url'))
+        self.set_prometheus_url_disable_ssl(self.config.get('prometheus_url_disable_ssl'))
+
+        self.pclient = prom.PrometheusConnect(url = self.prometheus_url, disable_ssl=self.prometheus_url_disable_ssl)
+
+    def tick(self):
+        metrics = self.pclient.custom_query(query = 'irate(node_network_transmit_bytes_total[1m])')
+        if metrics:
+            total = 0
+            for m in metrics:
+                total = total + float(m['value'][1])
+
+            if total < 1024:
+                self.value = "{} B/s".format("%.2f" % (total,))
+            elif total >= 1024 and total < 1024 * 1024:
+                self.value = "{} KB/s".format("%.2f" % (total / 1024,))
+            else:
+                self.value = "{} MB/s".format("%.2f" % (total / 1024 / 1024,))
+        else:
+            self.value = "0 B/s"
+        
+        self.logger.info(self.value)
     

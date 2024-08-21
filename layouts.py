@@ -102,7 +102,7 @@ class Kubernetes(Overlay):
         r = False
 
         # Validate Prometheus globals if any Prometheus option is enabled
-        if self.config.get('enable_prometheus_network_throughput_recv', False):
+        if self.config.get('enable_prometheus_network_throughput_recv', False) or self.config.get('enable_prometheus_network_throughput_send', False):
             if not self.config.get('prometheus_url', False):
                 self.logger.error("Missing configuration argument 'prometheus_url'")
                 r = True
@@ -118,6 +118,11 @@ class Kubernetes(Overlay):
                     r = True
         if self.config.get('enable_prometheus_network_throughput_recv', False):
             for k in ['prometheus_network_throughput_recv_x', 'prometheus_network_throughput_recv_y']:
+                if not self.config.get(k, False):
+                    self.logger.error("Missing configuration argument '%s'", k)
+                    r = True
+        if self.config.get('enable_prometheus_network_throughput_send', False):
+            for k in ['prometheus_network_throughput_send_x', 'prometheus_network_throughput_send_y']:
                 if not self.config.get(k, False):
                     self.logger.error("Missing configuration argument '%s'", k)
                     r = True
@@ -142,6 +147,9 @@ class Kubernetes(Overlay):
         if self.config.get('enable_prometheus_network_throughput_recv', False):
             self.prometheus_network_throughput_recv = widgets.PrometheusNetworkThroughputRecv(self.config, self.tmpdir, self.logger)
             self.prometheus_network_throughput_recv.setup(self.get_background())
+        if self.config.get('enable_prometheus_network_throughput_send', False):
+            self.prometheus_network_throughput_send = widgets.PrometheusNetworkThroughputSend(self.config, self.tmpdir, self.logger)
+            self.prometheus_network_throughput_send.setup(self.get_background())
         if self.config.get('text', False):
             for text_config in self.config.get('text', []):
                 if text_config.get('enabled', False):
@@ -161,7 +169,9 @@ class Kubernetes(Overlay):
         if self.config.get('enable_kubernetes_pod_count', False):
             self.pod_count.clear()
         if self.config.get('enable_prometheus_network_throughput_recv', False):
-            self.pod_count.clear()
+            self.prometheus_network_throughput_recv.clear()
+        if self.config.get('enable_prometheus_network_throughput_send', False):
+            self.prometheus_network_throughput_send.clear()
         if self.config.get('text', False):
             for text_widget in self.text_widgets:
                 text_widget.clear()
@@ -177,6 +187,8 @@ class Kubernetes(Overlay):
              self.pod_count.draw()
         if self.config.get('enable_prometheus_network_throughput_recv', False):
              self.prometheus_network_throughput_recv.draw()
+        if self.config.get('enable_prometheus_network_throughput_send', False):
+             self.prometheus_network_throughput_send.draw()
         if self.config.get('text', False):
             for text_widget in self.text_widgets:
                 text_widget.draw()
@@ -195,6 +207,8 @@ class Kubernetes(Overlay):
             self.pod_count.cleanup()
         elif self.config.get('enable_prometheus_network_throughput_recv', False):
             self.prometheus_network_throughput_recv.cleanup()
+        elif self.config.get('enable_prometheus_network_throughput_send', False):
+            self.prometheus_network_throughput_send.cleanup()
         elif self.config.get('text', False):
             for text_widget in self.text_widgets:
                 text_widget.cleanup()
@@ -209,6 +223,8 @@ class Kubernetes(Overlay):
             self.pod_count.shutdown()
         if self.config.get('enable_prometheus_network_throughput_recv', False):
             self.prometheus_network_throughput_recv.shutdown()
+        if self.config.get('enable_prometheus_network_throughput_send', False):
+            self.prometheus_network_throughput_send.shutdown()
         if self.config.get('text', False):
             for text_widget in self.text_widgets:
                 text_widget.shutdown()
