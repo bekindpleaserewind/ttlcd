@@ -1,0 +1,53 @@
+##################################################################################
+# Start by specifying a General configuration with sane defaults for your theme. #
+#                                                                                #
+# You can define widgets individually (all optional).                            #
+# Each widget will require the x and y coordinates, if it is enabled or disabled #
+# and any optional overrides (i.e. font to use, font size, color).               #
+##################################################################################
+
+# Layout to utilize
+use: Kubernetes
+
+# Device
+idVendor: 0x264a
+idProduct: 0x233d
+
+# System
+daemon: False
+#log_file: "/tmp/ttlcd.log" # optional parameter, defaults to stdout if missing
+
+# General
+background: "/path/to/background.jpg"
+orientation: "top" # top, left, bottom, right
+font_file: "/path/to/default/font.ttf"
+font_size: 10
+font_color: '#ffffff'
+line_length: 64
+line_space: 8
+
+# Generic Text Strings
+text:
+  - string: "NETWORK OUT"
+    enabled: True
+    x: 302
+    y: 47
+    font_file: "/path/to/other/font.ttf"
+    font_size: 8 
+    font_color: "#000000"
+
+# Date
+enable_date: True
+date_x: 117
+date_y: 14
+date_font_file: "/path/to/other/font.ttf"
+date_font_size: 10
+date_font_color: "#ffffff"
+
+# Time
+enable_time: True
+time_x: 308
+time_y: 14
+time_font_file: "/path/to/other/font.ttf"
+time_font_size: 10
+time_font_color: "#ffffff"
