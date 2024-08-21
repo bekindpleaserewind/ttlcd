@@ -14,10 +14,26 @@ class Overlay:
 
     def validate_config(self):
         """
-        Override with config validation routines.
-        Returns 0 on success, >0 on failure.
+        Returns False on success, True on failure.
         """
-        pass
+        r = False
+        
+        # Validate required global variables exist
+        bg = self.config.get('background')
+        if bg is not None:
+            if not os.path.exists(bg):
+                self.logger.error("no such background file '%s'", bg)
+                r = True
+        else:
+            self.logger.error("you must specify a background file")
+            r = True
+
+        for k in ['idVendor', 'idProduct', 'background', 'orientation', 'font_file', 'font_size', 'font_color', 'line_length', 'line_space']:
+            if self.config.get(k) is None:
+                self.logger.error("Missing configuration argument '%s'", k)
+                r = True
+        
+        return(r)
 
     def set_background(self, background_file = None):
         if background_file is None:
@@ -39,13 +55,6 @@ class Overlay:
     def get_image_path(self):
         return(self.image_path)
 
-class Kubernetes(Overlay):
-    def __init__(self, config, logger):
-        Overlay.__init__(self, config, logger)
-
-    def validate_config(self):
-        return(False)
-
     def setup(self):
         # Block execution if configuration is invalid
         if self.validate_config():
@@ -57,10 +66,152 @@ class Kubernetes(Overlay):
         # Define where we store our screen jfif
         self.set_image_path(os.path.join(self.tmpdir.name, 'screen.jpg'))
 
+    def display(self, orientation = 0, quality = 80, optimize = False):
+        # Image post processing keeps us safe
+        pp = util.ImagePostProcess(self.image_path)
+        pp.process()
+
+        return(self.image_path)
+
+    def cleanup(self):
+        """
+        Override me (required)!
+        """
+        pass
+
+    def shutdown(self):
+        """
+        Override me (required)!
+        """
+        pass
+
+class Kubernetes(Overlay):
+    def __init__(self, config, logger):
+        self.text_widgets = []
+        Overlay.__init__(self, config, logger)
+
+    def validate_config(self):
+        """
+        Basic configuration validation
+        If missing config item, set r = True
+        """
+        if super().validate_config():
+            self.logger.info("FAILED TO VALIDATE SUPER CONFIG")
+            return(True)
+
+        r = False
+
+        # Validate Prometheus globals if any Prometheus option is enabled
+        if self.config.get('enable_prometheus_network_throughput_recv', False):
+            if not self.config.get('prometheus_url', False):
+                self.logger.error("Missing configuration argument 'prometheus_url'")
+                r = True
+            if not self.config.get('prometheus_url_disable_ssl', False):
+                self.logger.error("Missing configuration argument 'prometheus_url_disable_ssl'")
+                r = True
+
+        # Validate each widget argument when a widget is enabled
+        if self.config.get('enable_kubernetes_pod_count', False):
+            for k in ['kubernetes_pod_count_x', 'kubernetes_pod_count_y']:
+                if not self.config.get(k, False):
+                    self.logger.error("Missing configuration argument '%s'", k)
+                    r = True
+        if self.config.get('enable_prometheus_network_throughput_recv', False):
+            for k in ['prometheus_network_throughput_recv_x', 'prometheus_network_throughput_recv_y']:
+                if not self.config.get(k, False):
+                    self.logger.error("Missing configuration argument '%s'", k)
+                    r = True
+        
+        return(r)
+
+    def setup(self):
+        super().setup()
+
+        if self.validate_config():
+            return(True)
+
+        if self.config.get('enable_date', False):
+            self.date = widgets.Date(self.config, self.tmpdir, self.logger)
+            self.date.setup(self.get_background())
+        if self.config.get('enable_time', False):
+            self.time = widgets.Time(self.config, self.tmpdir, self.logger)
+            self.time.setup(self.get_background())
+        if self.config.get('enable_kubernetes_pod_count', False):
+            self.pod_count = widgets.KubernetesPodCount(self.config, self.tmpdir, self.logger)
+            self.pod_count.setup(self.get_background())
+        if self.config.get('enable_prometheus_network_throughput_recv', False):
+            self.prometheus_network_throughput_recv = widgets.PrometheusNetworkThroughputRecv(self.config, self.tmpdir, self.logger)
+            self.prometheus_network_throughput_recv.setup(self.get_background())
+        if self.config.get('text', False):
+            for text_config in self.config.get('text', []):
+                if text_config.get('enabled', False):
+                    text_widget = widgets.Text(text_config, self.tmpdir, self.logger)
+                    text_widget.setup(self.get_background())
+                    self.text_widgets.append(text_widget)
+
+        # Success
         return(False)
 
     def display(self, orientation = 0, quality = 80, optimize = False):
-        pass
+        # Clear previous frame
+        if self.config.get('enable_date', False):
+            self.date.clear()
+        if self.config.get('enable_time', False):
+            self.time.clear()
+        if self.config.get('enable_kubernetes_pod_count', False):
+            self.pod_count.clear()
+        if self.config.get('enable_prometheus_network_throughput_recv', False):
+            self.pod_count.clear()
+        if self.config.get('text', False):
+            for text_widget in self.text_widgets:
+                text_widget.clear()
+ 
+        # We retrieve a new temporary image path on first draw
+        # It should be utilized in place of get_background in all
+        # further Widgets rendered.
+        if self.config.get('enable_date', False):
+            self.date.draw()
+        if self.config.get('enable_time', False):
+            self.time.draw()
+        if self.config.get('enable_kubernetes_pod_count', False):
+             self.pod_count.draw()
+        if self.config.get('enable_prometheus_network_throughput_recv', False):
+             self.prometheus_network_throughput_recv.draw()
+        if self.config.get('text', False):
+            for text_widget in self.text_widgets:
+                text_widget.draw()
+
+        got = super().display(orientation = 0, quality = 80, optimize = False)
+        return(self.image_path)
+
+    def cleanup(self):
+        # We only need to cleanup one of the widgets
+        # to ensure the tmpdir has been removed.
+        if self.config.get('enable_date', False):
+            self.date.cleanup()
+        elif self.config.get('enable_time', False):
+            self.time.cleanup()
+        elif self.config.get('enable_kubernetes_pod_count', False):
+            self.pod_count.cleanup()
+        elif self.config.get('enable_prometheus_network_throughput_recv', False):
+            self.prometheus_network_throughput_recv.cleanup()
+        elif self.config.get('text', False):
+            for text_widget in self.text_widgets:
+                text_widget.cleanup()
+                break
+
+    def shutdown(self):
+        if self.config.get('enable_date', False):
+            self.date.shutdown()
+        if self.config.get('enable_time', False):
+            self.time.shutdown()
+        if self.config.get('enable_kubernetes_pod_count', False):
+            self.pod_count.shutdown()
+        if self.config.get('enable_prometheus_network_throughput_recv', False):
+            self.prometheus_network_throughput_recv.shutdown()
+        if self.config.get('text', False):
+            for text_widget in self.text_widgets:
+                text_widget.shutdown()
 
 class Node(Overlay):
     def __init__(self, config, logger):
@@ -71,14 +222,12 @@ class Node(Overlay):
     def validate_config(self):
         """
         Basic configuration validation
+        If missing config item, set r = True
         """
+        if Overlay.validate_config(self):
+            return(True)
+
         r = False
-        
-        # Validate required global variables exist
-        for k in ['idVendor', 'idProduct', 'background', 'orientation', 'font_file', 'font_size', 'font_color', 'line_length', 'line_space']:
-            if self.config.get(k) is None:
-                self.logger.error("Missing configuration argument '%s'", k)
-                r = True
 
         # Validate each widget argument when a widget is enabled
         if self.config.get('enable_date', False):
@@ -177,23 +326,10 @@ class Node(Overlay):
                     self.logger.error("Missing configuration argument '%s'", k)
                     r = True
 
-        # Specific tests
-        if not os.path.exists(self.config.get('background')):
-            self.logger.error("no such background file '%s'", self.config.get('background'))
-            r = True
-
         return(r)
 
     def setup(self):
-        # Block execution if configuration is invalid
-        if self.validate_config():
-            return(True)
-
-        # Use default background from configuration
-        self.set_background()
-
-        # Define where we store our screen jfif
-        self.set_image_path(os.path.join(self.tmpdir.name, 'screen.jpg'))
+        super().setup()
 
         if self.config.get('enable_date', False):
             self.date = widgets.Date(self.config, self.tmpdir, self.logger)
@@ -323,11 +459,7 @@ class Node(Overlay):
         if self.config.get('enable_uptime', False):
             self.uptime.draw()
 
-        # Image post processing keeps us safe
-        pp = util.ImagePostProcess(self.image_path)
-        pp.process()
-
-        return(self.image_path)
+        return(Overlay.display(self, orientation = 0, quality = 80, optimize = False))
     
     def cleanup(self):
         # We only need to cleanup one of the widgets
