@@ -136,6 +136,11 @@ class Kubernetes(Overlay):
                 if not self.config.get(k, False):
                     self.logger.error("Missing configuration argument '%s'", k)
                     r = True
+        if self.config.get('enable_prometheus_free_cpu_percent', False):
+            for k in ['prometheus_free_cpu_percent_x', 'prometheus_free_cpu_percent_y']:
+                if not self.config.get(k, False):
+                    self.logger.error("Missing configuration argument '%s'", k)
+                    r = True
         
         return(r)
 
@@ -166,6 +171,9 @@ class Kubernetes(Overlay):
         if self.config.get('enable_prometheus_free_node_memory', False):
             self.prometheus_free_node_memory = widgets.PrometheusFreeNodeMemory(self.config, self.tmpdir, self.logger)
             self.prometheus_free_node_memory.setup(self.get_background())
+        if self.config.get('enable_prometheus_free_cpu_percent', False):
+            self.prometheus_free_cpu_percent = widgets.PrometheusFreeCpuPercent(self.config, self.tmpdir, self.logger)
+            self.prometheus_free_cpu_percent.setup(self.get_background())
         if self.config.get('text', False):
             for text_config in self.config.get('text', []):
                 if text_config.get('enabled', False):
@@ -192,6 +200,8 @@ class Kubernetes(Overlay):
             self.prometheus_oom.clear()
         if self.config.get('enable_prometheus_free_node_memory', False):
             self.prometheus_free_node_memory.clear()
+        if self.config.get('enable_prometheus_free_cpu_percent', False):
+            self.prometheus_free_cpu_percent.clear()
         if self.config.get('text', False):
             for text_widget in self.text_widgets:
                 text_widget.clear()
@@ -213,6 +223,8 @@ class Kubernetes(Overlay):
              self.prometheus_oom.draw()
         if self.config.get('enable_prometheus_free_node_memory', False):
              self.prometheus_free_node_memory.draw()
+        if self.config.get('enable_prometheus_free_cpu_percent', False):
+             self.prometheus_free_cpu_percent.draw()
         if self.config.get('text', False):
             for text_widget in self.text_widgets:
                 text_widget.draw()
@@ -237,6 +249,8 @@ class Kubernetes(Overlay):
             self.prometheus_oom.cleanup()
         elif self.config.get('enable_prometheus_free_node_memory', False):
             self.prometheus_free_node_memory.cleanup()
+        elif self.config.get('enable_prometheus_free_cpu_percent', False):
+            self.prometheus_free_cpu_percent.cleanup()
         elif self.config.get('text', False):
             for text_widget in self.text_widgets:
                 text_widget.cleanup()
@@ -257,6 +271,8 @@ class Kubernetes(Overlay):
             self.prometheus_oom.shutdown()
         if self.config.get('enable_prometheus_free_node_memory', False):
             self.prometheus_free_node_memory.shutdown()
+        if self.config.get('enable_prometheus_free_cpu_percent', False):
+            self.prometheus_free_cpu_percent.shutdown()
         if self.config.get('text', False):
             for text_widget in self.text_widgets:
                 text_widget.shutdown()

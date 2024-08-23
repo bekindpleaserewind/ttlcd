@@ -870,3 +870,27 @@ class PrometheusFreeNodeMemory(Widget):
             self.value = str("{:d}G".format(int(self.value / 1024 / 1024 / 1024)))[0:3]
 
         self.value = str(self.value).rjust(4, ' ')
+
+class PrometheusFreeCpuPercent(Widget):
+    def __init__(self, config, tmpdir, logger):
+        self.net_send = False
+        Widget.__init__(self, config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('prometheus_free_cpu_percent_x'))
+        self.set_y(self.config.get('prometheus_free_cpu_percent_y'))
+        self.set_font(self.config.get('prometheus_free_cpu_percent_font_file'))
+        self.set_font_size(self.config.get('prometheus_free_cpu_percent_font_size'))
+        self.set_font_color(self.config.get('prometheus_free_cpu_percent_font_color'))
+        self.set_prometheus_url(self.config.get('prometheus_url'))
+        self.set_prometheus_url_disable_ssl(self.config.get('prometheus_url_disable_ssl'))
+
+        self.pclient = prom.PrometheusConnect(url = self.prometheus_url, disable_ssl=self.prometheus_url_disable_ssl)
+
+    def tick(self):
+        metrics = self.pclient.custom_query(query = 'sum(100 - (100 * avg(1 - rate(node_cpu_seconds_total{mode="idle"}[1m])) by (instance)))/count(100 - (100 * avg(1 - rate(node_cpu_seconds_total{mode="idle"}[1m])) by (instance)))')
+        # There is only 1 metric
+        for metric in metrics:
+            self.value = str("{:d}%".format(int(metric['value'][1].split('.')[0]))).rjust(4, ' ')[0:4]
