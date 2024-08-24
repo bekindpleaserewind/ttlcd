@@ -775,7 +775,6 @@ class PrometheusNetworkThroughputRecv(Widget):
         else:
             self.value = "0 B/s"
         
-        self.logger.info(self.value)
 
 class PrometheusNetworkThroughputSend(Widget):
     def __init__(self, config, tmpdir, logger):
@@ -811,5 +810,123 @@ class PrometheusNetworkThroughputSend(Widget):
         else:
             self.value = "0 B/s"
         
-        self.logger.info(self.value)
-    
+class PrometheusOutOfMemory(Widget):
+    def __init__(self, config, tmpdir, logger):
+        self.net_send = False
+        Widget.__init__(self, config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('prometheus_oom_x'))
+        self.set_y(self.config.get('prometheus_oom_y'))
+        self.set_font(self.config.get('prometheus_oom_font_file'))
+        self.set_font_size(self.config.get('prometheus_oom_font_size'))
+        self.set_font_color(self.config.get('prometheus_oom_font_color'))
+        self.set_prometheus_url(self.config.get('prometheus_url'))
+        self.set_prometheus_url_disable_ssl(self.config.get('prometheus_url_disable_ssl'))
+
+        self.pclient = prom.PrometheusConnect(url = self.prometheus_url, disable_ssl=self.prometheus_url_disable_ssl)
+
+    def tick(self):
+        metrics = self.pclient.custom_query(query = 'sum by (namespace, pod) (kube_pod_container_status_restarts_total) * on(namespace, pod) group_left(reason) kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}')
+        self.value = 0
+        for metric in metrics:
+            self.value = self.value + int(metric['value'][1])
+        self.value = str(self.value).rjust(4, ' ')[0:4]
+
+class PrometheusFreeNodeMemory(Widget):
+    def __init__(self, config, tmpdir, logger):
+        self.net_send = False
+        Widget.__init__(self, config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('prometheus_free_node_memory_x'))
+        self.set_y(self.config.get('prometheus_free_node_memory_y'))
+        self.set_font(self.config.get('prometheus_free_node_memory_font_file'))
+        self.set_font_size(self.config.get('prometheus_free_node_memory_font_size'))
+        self.set_font_color(self.config.get('prometheus_free_node_memory_font_color'))
+        self.set_prometheus_url(self.config.get('prometheus_url'))
+        self.set_prometheus_url_disable_ssl(self.config.get('prometheus_url_disable_ssl'))
+
+        self.pclient = prom.PrometheusConnect(url = self.prometheus_url, disable_ssl=self.prometheus_url_disable_ssl)
+
+    def tick(self):
+        metrics = self.pclient.custom_query('sum(node_memory_MemFree_bytes)')
+        self.value = 0
+        for metric in metrics:
+            self.value = self.value + int(metric['value'][1])
+
+        self.value = int(self.value)
+        if self.value < 1000:
+            self.value = "{:d}B".format(int(self.value))
+        elif self.value >= 1000 and self.value < 1024000:
+            self.value = "{:d}K".format(int(self.value / 1024))
+        elif self.value >= 1024000 and self.value < 1048576000:
+            self.value = "{:d}M".format(int(self.value / 1024 / 1024))
+        else:
+            self.value = str("{:d}G".format(int(self.value / 1024 / 1024 / 1024)))[0:3]
+
+        self.value = str(self.value).rjust(4, ' ')
+
+class PrometheusFreeCpuPercent(Widget):
+    def __init__(self, config, tmpdir, logger):
+        self.net_send = False
+        Widget.__init__(self, config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('prometheus_free_cpu_percent_x'))
+        self.set_y(self.config.get('prometheus_free_cpu_percent_y'))
+        self.set_font(self.config.get('prometheus_free_cpu_percent_font_file'))
+        self.set_font_size(self.config.get('prometheus_free_cpu_percent_font_size'))
+        self.set_font_color(self.config.get('prometheus_free_cpu_percent_font_color'))
+        self.set_prometheus_url(self.config.get('prometheus_url'))
+        self.set_prometheus_url_disable_ssl(self.config.get('prometheus_url_disable_ssl'))
+
+        self.pclient = prom.PrometheusConnect(url = self.prometheus_url, disable_ssl=self.prometheus_url_disable_ssl)
+
+    def tick(self):
+        metrics = self.pclient.custom_query(query = 'sum(100 - (100 * avg(1 - rate(node_cpu_seconds_total{mode="idle"}[1m])) by (instance)))/count(100 - (100 * avg(1 - rate(node_cpu_seconds_total{mode="idle"}[1m])) by (instance)))')
+        # There is only 1 metric
+        for metric in metrics:
+            self.value = str("{:d}%".format(int(metric['value'][1].split('.')[0]))).rjust(4, ' ')[0:4]
+
+class PrometheusClusterDiskThroughput(Widget):
+    def __init__(self, config, tmpdir, logger):
+        self.net_send = False
+        Widget.__init__(self, config, tmpdir, logger)
+
+    def setup(self, background):
+        self.set_type(WIDGET_TYPE_TEXT)
+        self.set_background(background)
+        self.set_x(self.config.get('prometheus_cluster_disk_throughput_x'))
+        self.set_y(self.config.get('prometheus_cluster_disk_throughput_y'))
+        self.set_font(self.config.get('prometheus_cluster_disk_throughput_font_file'))
+        self.set_font_size(self.config.get('prometheus_cluster_disk_throughput_font_size'))
+        self.set_font_color(self.config.get('prometheus_cluster_disk_throughput_font_color'))
+        self.set_prometheus_url(self.config.get('prometheus_url'))
+        self.set_prometheus_url_disable_ssl(self.config.get('prometheus_url_disable_ssl'))
+
+        self.pclient = prom.PrometheusConnect(url = self.prometheus_url, disable_ssl=self.prometheus_url_disable_ssl)
+
+    def tick(self):
+        metrics = self.pclient.custom_query('sum(sum by (device) (rate(container_fs_writes_bytes_total[1m]))) + (sum by (device) (rate(container_fs_reads_bytes_total[1m])))')
+        self.value = 0
+        for metric in metrics:
+            self.value = self.value + int(metric['value'][1].split('.')[0])
+
+        self.value = int(self.value)
+        if self.value < 1000:
+            self.value = "{:d}B".format(int(self.value))
+        elif self.value >= 1000 and self.value < 1024000:
+            self.value = "{:d}K".format(int(self.value / 1024))
+        elif self.value >= 1024000 and self.value < 1048576000:
+            self.value = "{:d}M".format(int(self.value / 1024 / 1024))
+        else:
+            self.value = str("{:d}G".format(int(self.value / 1024 / 1024 / 1024)))[0:3]
+
+        self.value = str(self.value).rjust(4, ' ')

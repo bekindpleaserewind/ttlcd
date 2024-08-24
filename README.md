@@ -4,7 +4,7 @@ Linux controller for the Thermaltake LCD Panel Kit (Tower 200 Mini Chassis Model
 ![Thermaltake LCD Panel Kit running ttlcd](https://raw.githubusercontent.com/bekindpleaserewind/ttlcd/main/contrib/ttlcd.jpg)
 
 ## Overview
-Implementation (rough at that) of the Thermaltake LCD Panel API.  Currently CPU, RAM and Load Average widgets are built and can be displayed on a custom background.
+Implementation (rough at that) of the Thermaltake LCD Panel API.  Currently there are widgets for Kubernetes, Prometheus and stand alone nodes.
 
 Background images are streamed as fast as they can be processed (a few frames per second usually).  Supported resolution is 480x128.  File format is non progressive JPEGs via JFIF streams. See contrib/background.jpg for an example image.
 
