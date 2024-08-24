@@ -1,0 +1,156 @@
+##################################################################################
+# Start by specifying a General configuration with sane defaults for your theme. #
+#                                                                                #
+# You can define widgets individually (all optional).                            #
+# Each widget will require the x and y coordinates, if it is enabled or disabled #
+# and any optional overrides (i.e. font to use, font size, color).               #
+##################################################################################
+
+# Layout to utilize
+use: Kubernetes
+
+# Device
+idVendor: 0x264a
+idProduct: 0x233d
+
+# System
+daemon: False
+#log_file: "/tmp/ttlcd.log" # optional parameter, defaults to stdout if missing
+
+# General
+background: "/path/to/background.jpg"
+orientation: "top" # top, left, bottom, right
+font_file: "/path/to/font.ttf"
+font_size: 10
+font_color: '#ffffff'
+line_length: 64
+line_space: 8
+
+# Prometheus Global
+prometheus_url: "http://localhost:9090"
+prometheus_url_disable_ssl: True
+
+# Generic Text Strings
+text:
+  - string: "NETWORK OUT"
+    enabled: True
+    x: 302
+    y: 47
+    font_file: "/path/to/font.ttf"
+    font_size: 8 
+    font_color: "#000000"
+  - string: "NETWORK IN"
+    enabled: True
+    x: 109
+    y: 47
+    font_file: "/path/to/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "PODS"
+    enabled: True
+    x: 228
+    y: 64
+    font_file: "/path/to/font.ttf"
+    font_size: 8
+    font_color: "#ffffff"
+  - string: "OOM"
+    enabled: True
+    x: 437
+    y: 90
+    font_file: "/path/to/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "FREE"
+    enabled: True
+    x: 434
+    y: 25
+    font_file: "/path/to/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "MEM"
+    enabled: True
+    x: 434
+    y: 35
+    font_file: "/path/to/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "FREE"
+    enabled: True
+    x: 22
+    y: 25
+    font_file: "/path/to/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "CPU"
+    enabled: True
+    x: 22
+    y: 35
+    font_file: "/path/to/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "DISK"
+    enabled: True
+    x: 22
+    y: 85
+    font_file: "/path/to/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+  - string: "I/O"
+    enabled: True
+    x: 22
+    y: 95
+    font_file: "/path/to/font.ttf"
+    font_size: 8
+    font_color: "#000000"
+
+# Date
+enable_date: True
+date_x: 117
+date_y: 14
+date_font_size: 10
+date_font_color: "#ffffff"
+
+# Time
+enable_time: True
+time_x: 308
+time_y: 14
+time_font_size: 10
+time_font_color: "#ffffff"
+
+# Pods
+enable_kubernetes_pod_count: True
+kubernetes_pod_count_x: 228
+kubernetes_pod_count_y: 50
+kubernetes_pod_count_font_size: 12
+
+# Prometheus Network Receive Rate
+enable_prometheus_network_throughput_recv: True
+prometheus_network_throughput_recv_x: 114
+prometheus_network_throughput_recv_y: 37
+prometheus_network_throughput_recv_font_size: 8
+
+# Prometheus Network Send Rate
+enable_prometheus_network_throughput_send: True
+prometheus_network_throughput_send_x: 301
+prometheus_network_throughput_send_y: 37
+prometheus_network_throughput_send_font_size: 8
+
+# Prometheus Out of Memory Events
+enable_prometheus_oom: True
+prometheus_oom_x: 396
+prometheus_oom_y: 88
+
+# Prometheus Free Node Memory
+enable_prometheus_free_node_memory: True
+prometheus_free_node_memory_x: 396
+prometheus_free_node_memory_y: 29
+
+# Prometheus Free Cpu Percent
+enable_prometheus_free_cpu_percent: True
+prometheus_free_cpu_percent_x: 56
+prometheus_free_cpu_percent_y: 29
+
+# Prometheus Cluster Disk Throughput
+enable_prometheus_cluster_disk_throughput: True
+prometheus_cluster_disk_throughput_x: 56
+prometheus_cluster_disk_throughput_y: 88
